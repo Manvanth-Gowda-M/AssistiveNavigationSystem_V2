@@ -44,6 +44,7 @@ python_functions = ["test_*"]
 addopts = "-v --tb=short"
 markers = [
     "requires_camera: marks tests that need a physical webcam connected (deselect with '-m not requires_camera')",
+    "requires_model: marks tests that need the YOLO model to be loaded",
 ]
 
 [tool.setuptools.package-data]
