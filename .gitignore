@@ -1,0 +1,81 @@
+# =============================================================================
+# Assistive Navigation System V2 — .gitignore
+# =============================================================================
+
+# Virtual environment — never commit this (hundreds of MB)
+.venv/
+venv/
+env/
+ENV/
+
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+MANIFEST
+
+# Model files — large binary files, downloaded separately
+models/*.onnx
+models/*.pt
+models/*.pth
+models/*.bin
+models/*.safetensors
+models/*.gguf
+# Keep the models directory itself tracked
+!models/.gitkeep
+
+# Logs — generated at runtime
+logs/*.log
+logs/*.csv
+logs/*.txt
+# Keep the logs directory itself tracked
+!logs/.gitkeep
+
+# Evaluation data — generated at runtime
+data/evaluation/*.csv
+data/evaluation/*.json
+# Keep the directory tracked
+!data/evaluation/.gitkeep
+
+# Sample data — keep small test images, ignore large ones
+data/samples/*.mp4
+data/samples/*.avi
+
+# Environment / secrets
+.env
+*.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+Thumbs.db
+
+# pytest
+.pytest_cache/
+.cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# mypy
+.mypy_cache/
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+
+# Windows-specific
+desktop.ini

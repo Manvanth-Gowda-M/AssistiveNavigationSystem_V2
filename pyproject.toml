@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "assistive-navigation"
+version = "0.2.0"
+description = "Software-only real-time assistive navigation system using webcam and local AI models"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.9,<3.12"
+
+# Note: Ultralytics is AGPL-3.0. This project is open-source and compatible.
+# Depth Anything V2 Small is Apache-2.0.
+# See docs/licenses.md for full details.
+dependencies = [
+    "opencv-python>=4.8.0",
+    "onnxruntime>=1.16.0",
+    "pyttsx3>=2.90",
+    "psutil>=5.9.0",
+    "pyyaml>=6.0",
+    "numpy>=1.24.0",
+    "ultralytics>=8.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+# Allows running with: python -m assistive_navigation
+# Full entry point added in Phase 13
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.setuptools.package-data]
+"assistive_navigation" = ["*.yaml", "*.json"]

@@ -1,0 +1,382 @@
+# =============================================================================
+# Assistive Navigation System V2 — Master Configuration
+# =============================================================================
+# All configurable parameters live here.
+# DO NOT scatter magic numbers through the source code.
+# Every parameter has a comment explaining what it does and why the default
+# value was chosen.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# CAMERA
+# -----------------------------------------------------------------------------
+camera:
+  # Which camera to use. 0 = first/default camera (usually the laptop webcam).
+  # Change to 1, 2, etc. if you have multiple cameras.
+  device_id: 0
+
+  # Frame width and height requested from the camera.
+  # The camera may override these if it doesn't support the requested resolution.
+  # 640x480 is a good balance: fast to process, enough detail for navigation.
+  width: 640
+  height: 480
+
+  # Maximum frames per second to capture. Capped to reduce CPU load.
+  # The actual FPS may be lower depending on inference time.
+  max_fps: 30
+
+  # Number of frames to buffer in the capture queue.
+  # Larger = smoother but more memory. 2 is a safe default.
+  buffer_size: 2
+
+# -----------------------------------------------------------------------------
+# OBJECT DETECTION
+# -----------------------------------------------------------------------------
+detection:
+  # Model to use. Options: "yolo11n", "yolo11s", "yolov8n"
+  # yolo11n = fastest, smallest, recommended for CPU-only systems.
+  model_name: "yolo11n"
+
+  # Path to the ONNX model file, relative to project root.
+  # The download script will place the model here.
+  model_path: "models/yolo11n.onnx"
+
+  # Minimum confidence score (0.0 to 1.0) to accept a detection.
+  # 0.35 is intentionally conservative — we rely on temporal filtering,
+  # not high thresholds, to reduce false positives.
+  # Do NOT simply raise this to hide false positives — investigate root cause.
+  confidence_threshold: 0.35
+
+  # Input image size for the detector (square).
+  # 640 = standard YOLO input. Reducing to 320 speeds up inference but
+  # reduces accuracy. Do not change without benchmarking.
+  input_size: 640
+
+  # Inference device. "cpu" is the only option on this machine.
+  # Set to "cuda" if a CUDA GPU is added later.
+  device: "cpu"
+
+  # Number of CPU threads for ONNX Runtime inference.
+  # 0 = use all available. On i5-12450H (8 cores), 4 is a safe start.
+  num_threads: 4
+
+# -----------------------------------------------------------------------------
+# OBJECT CLASSES — Navigation Priority Classification
+# -----------------------------------------------------------------------------
+# This section defines which COCO object classes the navigation system cares
+# about, and at what priority level.
+#
+# Priority classes:
+#   A = Navigation-critical (always alert)
+#   B = Useful contextual (alert when close)
+#   C = Low priority (alert only when very close)
+#   D = Ignore (suppress completely — known false-positive sources)
+#
+# COCO class IDs: https://cocodataset.org/#explore
+# -----------------------------------------------------------------------------
+object_classes:
+  navigation_critical:  # Priority A — alert always
+    - {id: 0,  name: "person"}
+    - {id: 1,  name: "bicycle"}
+    - {id: 2,  name: "car"}
+    - {id: 3,  name: "motorcycle"}
+    - {id: 5,  name: "bus"}
+    - {id: 7,  name: "truck"}
+    - {id: 56, name: "chair"}
+    - {id: 57, name: "couch"}
+    - {id: 60, name: "dining table"}
+    - {id: 63, name: "laptop"}  # On a surface, can be a trip hazard
+
+  contextual:  # Priority B — alert when CLOSE or nearer
+    - {id: 24, name: "backpack"}
+    - {id: 28, name: "suitcase"}
+    - {id: 16, name: "dog"}
+    - {id: 17, name: "cat"}
+    - {id: 39, name: "bottle"}
+    - {id: 73, name: "book"}
+    - {id: 67, name: "cell phone"}
+
+  low_priority:  # Priority C — alert only when VERY CLOSE
+    - {id: 15, name: "bench"}
+    - {id: 64, name: "mouse"}
+
+  ignored:  # Priority D — suppress entirely
+    # These classes were observed to cause false positives in V1.
+    # Suppressed because: remote control looks like phone in low-res images.
+    - {id: 65, name: "remote"}
+    # Suppressed because: pen/pencil was misclassified as baseball bat in V1.
+    - {id: 34, name: "baseball bat"}
+    - {id: 35, name: "baseball glove"}
+    # Suppressed because: phantom toothbrush detections observed in V1.
+    - {id: 79, name: "toothbrush"}
+    # Suppressed because: phantom tie detections observed in V1.
+    - {id: 27, name: "tie"}
+    # Suppressed because: no navigation relevance.
+    - {id: 32, name: "sports ball"}
+    - {id: 33, name: "kite"}
+    - {id: 37, name: "surfboard"}
+    - {id: 44, name: "spoon"}
+    - {id: 43, name: "knife"}
+    - {id: 42, name: "fork"}
+    - {id: 47, name: "cup"}  # Very common, rarely a navigation hazard
+    - {id: 49, name: "orange"}
+    - {id: 50, name: "broccoli"}
+
+# -----------------------------------------------------------------------------
+# OBJECT TRACKING
+# -----------------------------------------------------------------------------
+tracking:
+  # Tracker algorithm. Options: "bytetrack", "botsort"
+  # bytetrack = lighter, no ReID model needed, recommended for CPU-only.
+  # botsort = more stable but heavier. Upgrade if bytetrack is insufficient.
+  tracker: "bytetrack"
+
+  # Maximum number of frames a track can "disappear" before being dropped.
+  # 30 frames at 15 FPS ≈ 2 seconds. Allows brief occlusions.
+  max_missed_frames: 30
+
+  # Minimum track age (frames) before a track is considered "established".
+  # Prevents very new (possibly spurious) tracks from generating alerts.
+  min_track_age: 5
+
+  # IOU threshold for associating detections to existing tracks.
+  # 0.3 = tracks must overlap at least 30% with detection to be linked.
+  iou_threshold: 0.3
+
+# -----------------------------------------------------------------------------
+# DEPTH ESTIMATION
+# -----------------------------------------------------------------------------
+depth:
+  # Depth model to use.
+  # "depth_anything_v2_small" = Apache-2.0 license, ~95MB, ViT-S backbone.
+  # IMPORTANT: Only the Small variant is Apache-2.0.
+  # Base/Large/Giant are CC-BY-NC-4.0 (non-commercial only) — do not use them.
+  model_name: "depth_anything_v2_small"
+  model_path: "models/depth_anything_v2_small.onnx"
+
+  # Input resolution for depth model. Lower = faster but less precise.
+  # 518 is the native input size. 256 is a fast CPU-friendly option.
+  # We benchmark both in Phase 6.
+  input_size: 518
+
+  # Run depth estimation every N detection frames.
+  # Depth is slow (~500-1200ms on CPU) so we don't run it every frame.
+  # Every 5 frames at ~15 FPS detection = ~3 Hz depth updates.
+  # The last valid depth map is used for frames in between.
+  depth_update_interval: 5
+
+  # Number of depth samples to take within each object's bounding box ROI.
+  # We sample a central region (not full bbox) to avoid background noise.
+  # These values define the ROI as a fraction of the bounding box size.
+  roi_center_fraction: 0.5  # Use central 50% of bbox for depth sampling
+
+  # Minimum number of valid depth samples required to trust the result.
+  # If fewer valid samples exist, proximity is marked as UNKNOWN.
+  min_valid_samples: 10
+
+  # Temporal smoothing window (frames) for per-track depth.
+  # Averages depth over this many frames to reduce flicker.
+  smoothing_window: 5
+
+# -----------------------------------------------------------------------------
+# PROXIMITY CLASSIFICATION
+# These thresholds map relative depth values (0.0 to 1.0, where higher =
+# closer in Depth Anything's output) to human-readable proximity buckets.
+# IMPORTANT: These are RELATIVE values, not metric distances.
+# They must be calibrated empirically in Phase 7.
+# Default values are starting estimates only.
+# -----------------------------------------------------------------------------
+proximity:
+  # Depth value thresholds (relative, 0.0–1.0, higher = closer)
+  # Object with depth_value > very_close_threshold → VERY CLOSE
+  # Object with depth_value > close_threshold → CLOSE
+  # Object with depth_value > medium_threshold → MEDIUM
+  # Otherwise → FAR
+  very_close_threshold: 0.75
+  close_threshold: 0.55
+  medium_threshold: 0.35
+  # Below medium_threshold → FAR
+
+  # Labels used in audio output
+  labels:
+    very_close: "very close"
+    close: "close"
+    medium: "nearby"
+    far: "ahead"  # Used when direction is known but distance is uncertain
+
+# -----------------------------------------------------------------------------
+# SPATIAL REASONING — Direction Zones
+# These define how the frame is divided into LEFT / CENTER / RIGHT zones.
+# Values are fractions of frame width (0.0 = left edge, 1.0 = right edge).
+# Object's bounding-box center X is compared to these thresholds.
+# Default: left 30% / center 40% / right 30%
+# These must be tested and tuned in Phase 8.
+# -----------------------------------------------------------------------------
+spatial:
+  left_zone_end: 0.35       # 0.0 to this value = LEFT
+  right_zone_start: 0.65    # This value to 1.0 = RIGHT
+  # Between left_zone_end and right_zone_start = CENTER
+
+  # Direction labels used in audio output
+  labels:
+    left: "on your left"
+    center: "ahead"
+    right: "on your right"
+
+# -----------------------------------------------------------------------------
+# TEMPORAL FILTERING
+# An object must be detected persistently before triggering an alert.
+# This prevents single-frame phantom detections from causing false alerts.
+# -----------------------------------------------------------------------------
+temporal:
+  # Number of consecutive frames an object must be detected before
+  # it becomes an alert candidate.
+  # 5 frames at 15 FPS ≈ 0.33 seconds. Rejects most phantom detections.
+  # Justification: human reaction to audio takes ~0.5s anyway.
+  confirmation_frames: 5
+
+  # Fraction of the last N frames in which the class label must be consistent.
+  # 0.8 = 80% of frames must show the same class. Rejects flickering misclassification.
+  class_stability_threshold: 0.8
+
+  # Maximum allowed movement of bbox center between frames (as fraction of
+  # frame width) for the detection to be considered "stable position".
+  # 0.15 = 15% of frame width. Allows normal object motion but rejects
+  # wildly jumping detections.
+  position_stability_threshold: 0.15
+
+# -----------------------------------------------------------------------------
+# NAVIGATION PRIORITY ENGINE
+# Weights used to score each tracked object.
+# Higher weight = more influence on priority score.
+# These are starting values — must be tuned empirically in Phase 9.
+# -----------------------------------------------------------------------------
+priority:
+  weights:
+    proximity: 0.40       # Closest objects get highest priority
+    object_importance: 0.25  # Navigation-critical objects score higher
+    direction: 0.15       # Objects directly ahead score slightly higher
+    confidence: 0.10      # Higher detector confidence → slight boost
+    stability: 0.10       # Longer-tracked, more stable objects score higher
+
+  # Object importance scores (A=1.0, B=0.6, C=0.3, D=0.0)
+  importance_scores:
+    navigation_critical: 1.0
+    contextual: 0.6
+    low_priority: 0.3
+    ignored: 0.0
+
+  # Direction scores (ahead = highest risk for forward-walking user)
+  direction_scores:
+    center: 1.0
+    left: 0.7
+    right: 0.7
+
+# -----------------------------------------------------------------------------
+# ALERT MANAGER
+# Controls when and how often the system speaks.
+# -----------------------------------------------------------------------------
+alerts:
+  # Minimum seconds between repeated alerts for the SAME object
+  # at the SAME proximity level and direction.
+  # 5 seconds prevents spam for stable, non-moving obstacles.
+  cooldown_seconds: 5.0
+
+  # Seconds after an object disappears from frame before its state is reset.
+  # If it reappears within this window, no new "first seen" alert is issued.
+  # This prevents spam when an object briefly leaves and re-enters frame.
+  reappearance_window_seconds: 3.0
+
+  # Maximum number of alerts queued at once.
+  # If queue is full, lowest-priority pending alert is dropped.
+  max_queue_size: 3
+
+  # Alert template strings. {object} and {direction} and {proximity} are
+  # replaced at runtime. Keep these short — they are spoken aloud.
+  templates:
+    standard: "{object} {direction}, {proximity}"      # e.g. "person ahead, very close"
+    new_object: "{object} detected {direction}"         # e.g. "chair detected on your left"
+    escalation: "{object} {direction}, now {proximity}" # e.g. "person ahead, now very close"
+
+# -----------------------------------------------------------------------------
+# AUDIO / TTS
+# -----------------------------------------------------------------------------
+audio:
+  # TTS engine to use. Options: "sapi5", "piper"
+  # "sapi5" uses Windows built-in voices via pyttsx3 — zero setup, fast.
+  # "piper" uses neural TTS — better voice, slightly slower. Phase 11 upgrade.
+  engine: "sapi5"
+
+  # Voice name for SAPI5. Available on this machine: "David" or "Zira"
+  # David = male voice, Zira = female voice
+  sapi5_voice: "Zira"
+
+  # Speech rate (words per minute). Default SAPI5 rate is ~150-200 wpm.
+  # 175 is clear and not rushed for navigation alerts.
+  speech_rate: 175
+
+  # Volume (0.0 to 1.0)
+  volume: 0.9
+
+  # Whether to run TTS in a background thread (non-blocking).
+  # Must be True to avoid freezing the detection loop.
+  non_blocking: true
+
+# -----------------------------------------------------------------------------
+# DEBUG / VISUALIZATION
+# -----------------------------------------------------------------------------
+debug:
+  # Enable debug visualization window (OpenCV overlay with bounding boxes,
+  # class names, confidence, track IDs, depth, direction, priority, FPS).
+  # Set to false for headless/production mode.
+  enabled: true
+
+  # Show FPS counter on debug window
+  show_fps: true
+
+  # Show bounding boxes
+  show_boxes: true
+
+  # Show class name and confidence
+  show_labels: true
+
+  # Show track ID
+  show_track_id: true
+
+  # Show direction label (LEFT/CENTER/RIGHT)
+  show_direction: true
+
+  # Show proximity label (FAR/MEDIUM/CLOSE/VERY CLOSE)
+  show_proximity: true
+
+  # Show priority score
+  show_priority: false  # Clutters display; enable only for tuning
+
+  # Show depth value
+  show_depth_value: false  # Clutters display; enable only for depth debugging
+
+  # Log all detections (including filtered/ignored) to file
+  log_all_detections: true
+
+  # Log file path
+  log_path: "logs/detections.csv"
+
+  # Performance log path
+  perf_log_path: "logs/performance.csv"
+
+# -----------------------------------------------------------------------------
+# LOGGING
+# -----------------------------------------------------------------------------
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR
+  level: "INFO"
+
+  # Log to file in addition to console
+  log_to_file: true
+  log_file: "logs/system.log"
+
+  # Maximum log file size in MB before rotation
+  max_log_size_mb: 10
+
+  # Number of backup log files to keep
+  backup_count: 3

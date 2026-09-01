@@ -1,0 +1,4 @@
+# This directory stores downloaded model files (.onnx, .pt, etc.)
+# Model files are NOT committed to Git (they are large binary files).
+# Use scripts/download_models.py to download models.
+# See docs/models.md for model details, sources, and licenses.
