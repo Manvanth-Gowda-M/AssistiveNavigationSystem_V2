@@ -42,6 +42,9 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
+markers = [
+    "requires_camera: marks tests that need a physical webcam connected (deselect with '-m not requires_camera')",
+]
 
 [tool.setuptools.package-data]
 "assistive_navigation" = ["*.yaml", "*.json"]

@@ -4,12 +4,22 @@
 
 ## Current Phase
 
-**Phase 1 — Environment & Repository Setup** ✅ COMPLETE
-**Next Phase: Phase 2 — Camera Capture Module** ⏳ Awaiting approval
+**Phase 2 — Camera Capture Module** ✅ COMPLETE
+**Next Phase: Phase 3 — Object Detector Benchmark** ⏳ Awaiting approval
 
 ---
 
-## Completed Work
+### Phase 2 — Camera Capture Module ✅ COMPLETE
+- [x] capture.py implemented (CameraCapture class, CameraError exception)
+- [x] Context manager (with statement) support — guarantees release
+- [x] Synchronous read() with FPS cap enforcement
+- [x] measure_capture_fps() benchmark method
+- [x] get_smoothed_fps() for live display (Phase 13)
+- [x] Graceful failure on invalid device (CameraError, not crash)
+- [x] All settings read from config.yaml (no magic numbers)
+- [x] 30/30 tests pass in test_camera.py
+- [x] Actual measured FPS: 21.36 FPS (minimum: 15.0) — PASS
+- [x] Git commit made
 
 ### Phase 0 — Discovery & Planning ✅
 - System discovery completed (OS, CPU, GPU, Python, webcam, audio)
