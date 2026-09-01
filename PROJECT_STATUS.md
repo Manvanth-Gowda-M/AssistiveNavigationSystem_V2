@@ -4,7 +4,8 @@
 
 ## Current Phase
 
-**Phase 1 — Environment & Repository Setup** 🔄 In Progress
+**Phase 1 — Environment & Repository Setup** ✅ COMPLETE
+**Next Phase: Phase 2 — Camera Capture Module** ⏳ Awaiting approval
 
 ---
 
@@ -23,26 +24,26 @@
   - TTS: pyttsx3 + Windows SAPI5
 - Phase 0 report approved
 
-### Phase 1 — Environment & Repository Setup 🔄
+### Phase 1 — Environment & Repository Setup ✅ COMPLETE
 - [x] Workspace confirmed empty
 - [x] `.venv` created (Python 3.10.11, isolated)
 - [x] Git repository initialized
-- [x] Project folder structure created
+- [x] Project folder structure created (20 directories)
 - [x] `.gitignore` created
 - [x] `.env.example` created
 - [x] `config/config.yaml` created (all parameters documented)
 - [x] `README.md` created (with safety disclaimer)
 - [x] `PROJECT_STATUS.md` created
-- [ ] `CHANGELOG.md` created
-- [ ] `pyproject.toml` created
-- [ ] `requirements.txt` created
-- [ ] `LICENSE` created
-- [ ] All Python skeleton files created
-- [ ] Phase 1 packages installed
-- [ ] `requirements.txt` pinned
-- [ ] `pytest` confirmed working
-- [ ] Initial Git commit made
-- [ ] All Phase 1 PASS conditions verified
+- [x] `CHANGELOG.md` created
+- [x] `pyproject.toml` created
+- [x] `requirements.txt` created and pinned
+- [x] `LICENSE` created (MIT)
+- [x] All Python skeleton files created (69 files total)
+- [x] Phase 1 packages installed: opencv-python==5.0.0.93, onnxruntime==1.23.2, pyttsx3==2.99, psutil==7.2.2, PyYAML==6.0.3, pytest==9.1.1
+- [x] config_loader.py fully implemented and tested
+- [x] 8/8 config tests pass
+- [x] Initial Git commit made (d2aaf1a)
+- [x] All Phase 1 PASS conditions verified
 
 ---
 
@@ -69,12 +70,10 @@ None yet.
 
 ## Next Step
 
-Complete Phase 1:
-1. Create remaining files (CHANGELOG, pyproject.toml, requirements.txt, LICENSE, skeleton modules)
-2. Install Phase 1 packages
-3. Pin requirements.txt
-4. Verify pytest
-5. Initial Git commit
-6. Verify all PASS conditions
+**Phase 2 — Camera Capture Module** — awaiting your approval to proceed.
 
-Do NOT start Phase 2 until all Phase 1 PASS conditions are met.
+Phase 2 will:
+1. Implement `src/assistive_navigation/camera/capture.py`
+2. Test that the webcam opens, captures frames, measures FPS, and closes cleanly
+3. Run `tests/unit/test_camera.py`
+4. Verify all Phase 2 PASS conditions before proceeding to Phase 3
