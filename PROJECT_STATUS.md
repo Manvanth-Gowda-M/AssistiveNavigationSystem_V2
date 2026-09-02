@@ -4,8 +4,8 @@
 
 ## Current Phase
 
-**Phase 2 — Camera Capture Module** ✅ COMPLETE
-**Next Phase: Phase 3 — Object Detector Benchmark** ⏳ Awaiting approval
+**Phase 4 — Detection Evaluation** ✅ COMPLETE
+**Next Phase: Phase 5 — Object Tracking** ⏳ Awaiting approval
 
 ---
 

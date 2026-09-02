@@ -1,0 +1,675 @@
+======================================================================
+  PHASE 4 DETECTION EVALUATION REPORT
+======================================================================
+    Generated : 2026-09-02 13:18:53
+    Platform  : Windows 10
+    Python    : 3.10.11
+    Model     : yolo11n
+    Conf threshold : 0.35
+    Device    : cpu
+
+  IMPORTANT: All results below describe the observed behavior
+  of YOLO11n on this specific camera, room, and lighting at
+  the time of evaluation. They do NOT constitute a formal
+  accuracy benchmark and cannot be generalised to other
+  environments or hardware.
+
+  This system is a RESEARCH PROTOTYPE. It must not be used
+  as a substitute for a mobility aid or human assistance.
+======================================================================
+  SCENARIO: Person standing
+======================================================================
+    ID       : person_standing
+    Category : 1_true_positive
+    Expected : person
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.59
+    Total raw detections                  : 30
+----------------------------------------------------------------------
+    Correct-class observations            : 30
+    Wrong-class observations              : 0
+    No-detection observations             : 0
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 30
+    Confidence (accepted detections):
+      mean                                : 0.921
+      min                                 : 0.911
+      max                                 : 0.936
+      stdev                               : 0.006
+======================================================================
+  SCENARIO: Chair
+======================================================================
+    ID       : chair_visible
+    Category : 1_true_positive
+    Expected : chair
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.41
+    Total raw detections                  : 30
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 30
+    No-detection observations             : 0
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 30
+    Confidence (accepted detections):
+      mean                                : 0.921
+      min                                 : 0.915
+      max                                 : 0.926
+      stdev                               : 0.002
+======================================================================
+  SCENARIO: Couch / sofa
+======================================================================
+    ID       : couch_visible
+    Category : 1_true_positive
+    Expected : couch
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.37
+    Total raw detections                  : 30
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 30
+    No-detection observations             : 0
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 30
+    Confidence (accepted detections):
+      mean                                : 0.920
+      min                                 : 0.916
+      max                                 : 0.925
+      stdev                               : 0.002
+======================================================================
+  SCENARIO: Dining table
+======================================================================
+    ID       : dining_table_visible
+    Category : 1_true_positive
+    Expected : dining table
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.45
+    Total raw detections                  : 84
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 29
+    No-detection observations             : 47
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 8
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 29
+    Confidence (accepted detections):
+      mean                                : 0.736
+      min                                 : 0.394
+      max                                 : 0.925
+      stdev                               : 0.178
+======================================================================
+  SCENARIO: Laptop
+======================================================================
+    ID       : laptop_visible
+    Category : 1_true_positive
+    Expected : laptop
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.42
+    Total raw detections                  : 67
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 59
+    No-detection observations             : 8
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 31
+        bottle                   : 28
+    Confidence (accepted detections):
+      mean                                : 0.760
+      min                                 : 0.392
+      max                                 : 0.927
+      stdev                               : 0.159
+======================================================================
+  SCENARIO: Bottle
+======================================================================
+    ID       : bottle_visible
+    Category : 1_true_positive
+    Expected : bottle
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.44
+    Total raw detections                  : 109
+----------------------------------------------------------------------
+    Correct-class observations            : 9
+    Wrong-class observations              : 35
+    No-detection observations             : 65
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 35
+        bottle                   : 9
+    Confidence (accepted detections):
+      mean                                : 0.586
+      min                                 : 0.354
+      max                                 : 0.880
+      stdev                               : 0.177
+======================================================================
+  SCENARIO: Backpack
+======================================================================
+    ID       : backpack_visible
+    Category : 1_true_positive
+    Expected : backpack
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.47
+    Total raw detections                  : 65
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 41
+    No-detection observations             : 24
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 31
+        chair                    : 10
+    Confidence (accepted detections):
+      mean                                : 0.607
+      min                                 : 0.356
+      max                                 : 0.817
+      stdev                               : 0.150
+======================================================================
+  SCENARIO: USB charger (plug + cable)
+======================================================================
+    ID       : usb_charger
+    Category : 2_false_positive_probe
+    Expected : no_navigation_object
+    V1 concern: Previously observed as: cell phone
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.41
+    Total raw detections                  : 100
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 0
+    No-detection observations             : 0
+    FP observations (accepted)            : 65
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 2774.77
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 42
+        cell phone               : 23
+    Confidence (accepted detections):
+      mean                                : 0.579
+      min                                 : 0.368
+      max                                 : 0.844
+      stdev                               : 0.137
+======================================================================
+  SCENARIO: Pen or pencil
+======================================================================
+    ID       : pen_or_pencil
+    Category : 2_false_positive_probe
+    Expected : no_navigation_object
+    V1 concern: Previously observed as: baseball bat
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.43
+    Total raw detections                  : 150
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 0
+    No-detection observations             : 0
+    FP observations (accepted)            : 74
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 3107.94
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 32
+        laptop                   : 20
+        book                     : 14
+        cell phone               : 8
+    Confidence (accepted detections):
+      mean                                : 0.501
+      min                                 : 0.351
+      max                                 : 0.880
+      stdev                               : 0.114
+======================================================================
+  SCENARIO: Mobile phone
+======================================================================
+    ID       : phone_only
+    Category : 2_false_positive_probe
+    Expected : cell phone
+    V1 concern: Previously observed as: remote
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.38
+    Total raw detections                  : 65
+----------------------------------------------------------------------
+    Correct-class observations            : 1
+    Wrong-class observations              : 3
+    No-detection observations             : 56
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 5
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 3
+        cell phone               : 1
+    Confidence (accepted detections):
+      mean                                : 0.496
+      min                                 : 0.351
+      max                                 : 0.724
+      stdev                               : 0.178
+======================================================================
+  SCENARIO: Empty desk (no navigation objects)
+======================================================================
+    ID       : empty_desk
+    Category : 2_false_positive_probe
+    Expected : no_navigation_object
+    V1 concern: Previously observed: toothbrush, tie, misc phantom detections
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.39
+    Total raw detections                  : 98
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 0
+    No-detection observations             : 0
+    FP observations (accepted)            : 12
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 516.97
+----------------------------------------------------------------------
+    Accepted class distribution:
+        bottle                   : 7
+        person                   : 4
+        book                     : 1
+    Confidence (accepted detections):
+      mean                                : 0.463
+      min                                 : 0.352
+      max                                 : 0.649
+      stdev                               : 0.097
+======================================================================
+  SCENARIO: Empty scene — false positive rate measurement
+======================================================================
+    ID       : empty_scene_fp_rate
+    Category : 3_empty_scene
+    Expected : no_navigation_object
+    STATUS: MEASURED
+
+    Frames processed                      : 742
+    Duration (seconds)                    : 60.01
+    Total raw detections                  : 1910
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 0
+    No-detection observations             : 0
+    FP observations (accepted)            : 898
+    Ignored-suppressed events             : 36
+    FP rate (accepted/min)                : 897.81
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 612
+        cell phone               : 145
+        chair                    : 78
+        bottle                   : 50
+        laptop                   : 11
+        book                     : 2
+    Confidence (accepted detections):
+      mean                                : 0.692
+      min                                 : 0.351
+      max                                 : 0.955
+      stdev                               : 0.191
+======================================================================
+  SCENARIO: Person — partially occluded (~50%)
+======================================================================
+    ID       : partial_person
+    Category : 4_occlusion
+    Expected : person
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 2.6
+    Total raw detections                  : 74
+----------------------------------------------------------------------
+    Correct-class observations            : 32
+    Wrong-class observations              : 2
+    No-detection observations             : 36
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 4
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 32
+        book                     : 1
+        laptop                   : 1
+    Confidence (accepted detections):
+      mean                                : 0.721
+      min                                 : 0.391
+      max                                 : 0.925
+      stdev                               : 0.177
+======================================================================
+  SCENARIO: Chair — partially occluded (~50%)
+======================================================================
+    ID       : partial_chair
+    Category : 4_occlusion
+    Expected : chair
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.41
+    Total raw detections                  : 51
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 22
+    No-detection observations             : 28
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 1
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        cell phone               : 17
+        person                   : 5
+    Confidence (accepted detections):
+      mean                                : 0.625
+      min                                 : 0.380
+      max                                 : 0.851
+      stdev                               : 0.150
+======================================================================
+  SCENARIO: Bottle — at left or right edge of frame
+======================================================================
+    ID       : edge_of_frame_bottle
+    Category : 4_occlusion
+    Expected : bottle
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.4
+    Total raw detections                  : 70
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 47
+    No-detection observations             : 23
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        cell phone               : 28
+        person                   : 19
+    Confidence (accepted detections):
+      mean                                : 0.533
+      min                                 : 0.351
+      max                                 : 0.691
+      stdev                               : 0.085
+======================================================================
+  SCENARIO: Person AND Chair together
+======================================================================
+    ID       : person_and_chair
+    Category : 5_multiple_objects
+    Expected : multiple
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 2.54
+    Total raw detections                  : 45
+----------------------------------------------------------------------
+    Correct-class observations            : 8
+    Wrong-class observations              : 3
+    No-detection observations             : 34
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        person                   : 8
+        cell phone               : 3
+    Confidence (accepted detections):
+      mean                                : 0.431
+      min                                 : 0.353
+      max                                 : 0.509
+      stdev                               : 0.050
+======================================================================
+  SCENARIO: Bottle + Laptop + Backpack
+======================================================================
+    ID       : bottle_laptop_backpack
+    Category : 5_multiple_objects
+    Expected : multiple
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.39
+    Total raw detections                  : 62
+----------------------------------------------------------------------
+    Correct-class observations            : 11
+    Wrong-class observations              : 24
+    No-detection observations             : 27
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        cell phone               : 14
+        laptop                   : 11
+        person                   : 9
+        chair                    : 1
+    Confidence (accepted detections):
+      mean                                : 0.715
+      min                                 : 0.361
+      max                                 : 0.933
+      stdev                               : 0.189
+======================================================================
+  SCENARIO: Door — COCO capability gap test
+======================================================================
+    ID       : door_gap_analysis
+    Category : 6_gap_analysis
+    Expected : COCO_GAP
+    COCO note : YOLO11n was trained on COCO 80 classes. 'door' is NOT one of them.
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.43
+    Total raw detections                  : 76
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 0
+    No-detection observations             : 0
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    Gap-analysis observations             : 76
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        couch                    : 13
+        person                   : 11
+        chair                    : 9
+        cell phone               : 2
+    Confidence (accepted detections):
+      mean                                : 0.581
+      min                                 : 0.357
+      max                                 : 0.896
+      stdev                               : 0.194
+======================================================================
+  SCENARIO: Doorway (open door frame) — COCO capability gap test
+======================================================================
+    ID       : doorway_gap_analysis
+    Category : 6_gap_analysis
+    Expected : COCO_GAP
+    COCO note : YOLO11n was trained on COCO 80 classes. 'doorway' is NOT one of them.
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 1.89
+    Total raw detections                  : 53
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 0
+    No-detection observations             : 0
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    Gap-analysis observations             : 52
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        couch                    : 5
+        chair                    : 3
+        person                   : 1
+    Confidence (accepted detections):
+      mean                                : 0.455
+      min                                 : 0.352
+      max                                 : 0.814
+      stdev                               : 0.144
+======================================================================
+  SCENARIO: Stairs / staircase — COCO capability gap test
+======================================================================
+    ID       : stairs_gap_analysis
+    Category : 6_gap_analysis
+    Expected : COCO_GAP
+    COCO note : YOLO11n was trained on COCO 80 classes. 'stairs' is NOT one of them.
+    STATUS: MEASURED
+
+    Frames processed                      : 30
+    Duration (seconds)                    : 2.63
+    Total raw detections                  : 54
+----------------------------------------------------------------------
+    Correct-class observations            : 0
+    Wrong-class observations              : 0
+    No-detection observations             : 0
+    FP observations (accepted)            : 0
+    Ignored-suppressed events             : 0
+    Gap-analysis observations             : 54
+    FP rate (accepted/min)                : 0.00
+----------------------------------------------------------------------
+    Accepted class distribution:
+        couch                    : 29
+        chair                    : 4
+        person                   : 1
+    Confidence (accepted detections):
+      mean                                : 0.689
+      min                                 : 0.472
+      max                                 : 0.832
+      stdev                               : 0.110
+======================================================================
+  OVERALL FINDINGS
+======================================================================
+    Scenarios measured     : 20
+    Scenarios not measured : 0
+
+    Aggregated across all MEASURED scenarios:
+    Total correct-class observations      : 91
+    Total wrong-class observations        : 325
+    Total no-detection observations       : 348
+    Total FP observations (accepted)      : 1049
+    Total ignored-class suppressions      : 54
+======================================================================
+  YOLO11n CAPABILITY GAP: DOORS AND STAIRS
+======================================================================
+  YOLO11n is trained on COCO 80 classes.
+  Neither 'door', 'stairs', 'doorway', nor 'step'
+  is a COCO class.
+
+  This means YOLO11n cannot reliably detect doors or stairs.
+  It may produce:
+    - Zero detections  (most likely)
+    - Misclassified detections (e.g. door as 'refrigerator' or 'tv')
+    - Very low confidence incidental detections
+
+  DO NOT interpret a non-zero detection as reliable door/stair detection.
+  This is a documented architectural limitation of YOLO11n for this use case.
+
+  Observed results from Category 6 scenarios:
+
+    Door — COCO capability gap test:
+      Accepted detections: {'chair': 9, 'couch': 13, 'cell phone': 2, 'person': 11}
+      No-detection observations: 0
+      Total frames: 30
+
+    Doorway (open door frame) — COCO capability gap test:
+      Accepted detections: {'person': 1, 'chair': 3, 'couch': 5}
+      No-detection observations: 0
+      Total frames: 30
+
+    Stairs / staircase — COCO capability gap test:
+      Accepted detections: {'couch': 29, 'person': 1, 'chair': 4}
+      No-detection observations: 0
+      Total frames: 30
+======================================================================
+  V1 PREVIOUSLY OBSERVED PROBLEM CLASSES
+======================================================================
+  The following classes caused false positives in the V1 prototype.
+  These are SUPPRESSED in the V2 filter (ignored list in config.yaml).
+  Phase 4 Category 2 tests whether they still appear in raw output.
+
+  Suppressed classes: toothbrush (79), tie (27), remote (65),
+    baseball bat (34), baseball glove (35)
+
+  If these appear in raw detections but NOT in accepted output,
+  the V2 filter is working as intended.
+  If they appear in ACCEPTED output, the filter has a gap — investigate.
+
+  Category 2 observed results:
+
+    USB charger (plug + cable):
+      V1 concern: Previously observed as: cell phone
+      FP observations (reached accepted output): 65
+      Correctly suppressed events: 0
+      Accepted classes: {'person': 42, 'cell phone': 23}
+
+    Pen or pencil:
+      V1 concern: Previously observed as: baseball bat
+      FP observations (reached accepted output): 74
+      Correctly suppressed events: 0
+      Accepted classes: {'cell phone': 8, 'person': 32, 'book': 14, 'laptop': 20}
+
+    Mobile phone:
+      V1 concern: Previously observed as: remote
+      FP observations (reached accepted output): 0
+      Correctly suppressed events: 5
+      Accepted classes: {'cell phone': 1, 'person': 3}
+
+    Empty desk (no navigation objects):
+      V1 concern: Previously observed: toothbrush, tie, misc phantom detections
+      FP observations (reached accepted output): 12
+      Correctly suppressed events: 0
+      Accepted classes: {'bottle': 7, 'book': 1, 'person': 4}
+======================================================================
+  KNOWN LIMITATIONS OF THIS EVALUATION
+======================================================================
+  1. No labelled image dataset — formal mAP/precision/recall not computed.
+  2. Results reflect the specific room, lighting, and camera position
+     used during testing. Performance in other environments may differ.
+  3. Confidence scores reflect model certainty, not ground-truth correctness.
+  4. FP/minute values describe the tested scene only.
+  5. No tracking used — each frame is evaluated independently.
+  6. 'No-detection observation' on blank frame DOES NOT measure FN rate.
+     See fn_test.py documentation for the distinction.
+  7. Doors and stairs cannot be detected by YOLO11n (COCO gap).
+     This is a documented limitation, not a bug to be worked around.
+======================================================================
