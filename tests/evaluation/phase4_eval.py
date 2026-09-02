@@ -113,9 +113,17 @@ CATEGORY_1_SCENARIOS = [
         "category": "1_true_positive",
         "expected_class": "couch",
         "display_name": "Couch / sofa",
+        "available": False,
+        "not_tested_reason": (
+            "No real couch or sofa was available for physical testing. "
+            "This scenario must not be run with a phone image or any "
+            "substitute. Marked NOT TESTED until a real couch is available."
+        ),
         "instruction": (
             "Point the camera at a couch or sofa.\n"
-            "A significant portion of it should fill the frame."
+            "A significant portion of it should fill the frame.\n"
+            "NOTE: This scenario is currently marked NOT TESTED because\n"
+            "no real couch is available."
         ),
     },
     {
@@ -626,19 +634,30 @@ def build_report(
     config: dict,
     output_path: Path,
     skipped_scenarios: List[str],
+    not_tested_ids: set = None,
+    cli_skipped_ids: set = None,
 ) -> None:
     """
     Write a human-readable evaluation report.
 
     Reports ONLY what was actually measured.
-    Sections for scenarios not run are marked NOT YET MEASURED.
+    Distinguishes three non-measured states:
+      NOT TESTED   : scenario marked available=False (e.g. couch — no physical object)
+      SKIPPED      : user pressed S during the run, OR in --skip-scenarios
+      NOT YET MEASURED : scenario was in scope but not reached
 
     Args:
         summaries:          List of summary dicts from compute_scenario_summary().
         config:             Full config dict.
         output_path:        Where to write the .txt report.
-        skipped_scenarios:  IDs of scenarios that were skipped.
+        skipped_scenarios:  IDs skipped by user pressing S during the run.
+        not_tested_ids:     IDs of scenarios marked available=False.
+        cli_skipped_ids:    IDs passed via --skip-scenarios CLI argument.
     """
+    not_tested_ids   = not_tested_ids   or set()
+    cli_skipped_ids  = cli_skipped_ids  or set()
+    # All skipped-by-user or by CLI: treated as user choice, not unavailability
+    all_user_skipped = set(skipped_scenarios) | cli_skipped_ids
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     summ_by_id = {s["scenario_id"]: s for s in summaries}
 
@@ -689,7 +708,16 @@ def build_report(
         if sc.get("coco_note"):
             lines.append(f"    COCO note : {sc['coco_note']}")
 
-        if sid in skipped_scenarios:
+        if sid in not_tested_ids:
+            # Scenario explicitly marked unavailable — not a user skip
+            lines.append("")
+            sc_obj = next((s for s in ALL_SCENARIOS if s["id"] == sid), None)
+            reason = sc_obj.get("not_tested_reason", "No reason given.") if sc_obj else "No reason given."
+            lines.append("    STATUS: NOT TESTED")
+            lines.append(f"    Reason: {reason}")
+            return
+
+        if sid in all_user_skipped:
             lines.append("")
             lines.append("    STATUS: SKIPPED BY USER")
             return
@@ -737,13 +765,20 @@ def build_report(
     # ── Overall summary ──────────────────────────────────────────────────────
     heading("OVERALL FINDINGS")
     measured = [s for s in summaries]
-    not_measured = [sc["id"] for sc in ALL_SCENARIOS
-                    if sc["id"] not in summ_by_id and sc["id"] not in skipped_scenarios]
+    not_measured = [
+        sc["id"] for sc in ALL_SCENARIOS
+        if (sc["id"] not in summ_by_id
+            and sc["id"] not in all_user_skipped
+            and sc["id"] not in not_tested_ids)
+    ]
 
     lines.append(f"    Scenarios measured     : {len(measured)}")
-    lines.append(f"    Scenarios not measured : {len(not_measured)}")
+    lines.append(f"    NOT TESTED (unavailable): {len(not_tested_ids)}"
+                 + (f" ({', '.join(not_tested_ids)})" if not_tested_ids else ""))
+    lines.append(f"    Skipped (user choice)  : {len(all_user_skipped)}")
+    lines.append(f"    Not yet measured       : {len(not_measured)}")
     if not_measured:
-        lines.append(f"    Not yet measured       : {', '.join(not_measured)}")
+        lines.append(f"    IDs not yet measured   : {', '.join(not_measured)}")
 
     if measured:
         total_fp = sum(s["fp_observations"] for s in measured)
@@ -899,6 +934,15 @@ def parse_args():
         "--list-scenarios", action="store_true",
         help="Print all scenario IDs and exit"
     )
+    parser.add_argument(
+        "--skip-scenarios", type=str, default="",
+        help=(
+            "Comma-separated list of scenario IDs to skip entirely, e.g. "
+            "'couch_visible,person_standing'. Scenarios marked available=False "
+            "in the scenario list are always skipped automatically regardless "
+            "of this flag."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -1022,8 +1066,12 @@ def main():
     if args.list_scenarios:
         print("\nAll evaluation scenarios:")
         for sc in ALL_SCENARIOS:
-            print(f"  [{sc['category']}]  {sc['id']}")
+            available = sc.get("available", True)
+            status = "AVAILABLE" if available else "NOT TESTED"
+            print(f"  [{sc['category']}]  {sc['id']}  [{status}]")
             print(f"    Expected: {sc.get('expected_class', '?')}")
+            if not available:
+                print(f"    Reason: {sc.get('not_tested_reason', '')}")
         return
 
     config = load_config()
@@ -1036,6 +1084,26 @@ def main():
 
     scenarios_to_run = filter_scenarios_by_category(args.categories)
 
+    # Build the set of scenario IDs to skip from --skip-scenarios flag
+    cli_skipped_ids: set = set()
+    if args.skip_scenarios.strip():
+        cli_skipped_ids = {
+            s.strip() for s in args.skip_scenarios.split(",") if s.strip()
+        }
+
+    # Scenarios marked available=False are ALWAYS skipped, regardless of CLI.
+    # They are recorded separately as NOT_TESTED (different from user-skipped).
+    not_tested = [
+        sc for sc in scenarios_to_run if not sc.get("available", True)
+    ]
+    not_tested_ids = {sc["id"] for sc in not_tested}
+
+    # Active scenarios: available AND not in the CLI skip list
+    active_scenarios = [
+        sc for sc in scenarios_to_run
+        if sc.get("available", True) and sc["id"] not in cli_skipped_ids
+    ]
+
     print()
     print("=" * 60)
     print("  PHASE 4 — DETECTION EVALUATION")
@@ -1044,7 +1112,11 @@ def main():
     print(f"  Conf threshold   : {config['detection']['confidence_threshold']}")
     print(f"  Frames/scenario  : {args.frames}")
     print(f"  Empty scene time : {args.fps_duration}s")
-    print(f"  Scenarios to run : {len(scenarios_to_run)}")
+    print(f"  Active scenarios : {len(active_scenarios)}")
+    if not_tested_ids:
+        print(f"  NOT TESTED (unavailable): {', '.join(not_tested_ids)}")
+    if cli_skipped_ids:
+        print(f"  Skipped (--skip-scenarios): {', '.join(cli_skipped_ids)}")
     print(f"  CSV output       : {csv_path}")
     print(f"  Report output    : {report_path}")
     print()
@@ -1085,12 +1157,12 @@ def main():
 
     # ── Run scenarios ────────────────────────────────────────────────────────
     all_summaries  = []
-    skipped        = []
+    skipped        = []   # user pressed S during the run
     user_quit_eval = False
 
     try:
-        for i, scenario in enumerate(scenarios_to_run, start=1):
-            print_scenario_banner(scenario, i, len(scenarios_to_run))
+        for i, scenario in enumerate(active_scenarios, start=1):
+            print_scenario_banner(scenario, i, len(active_scenarios))
 
             user_input = input("  > ").strip().lower()
             if user_input == "q":
@@ -1147,21 +1219,31 @@ def main():
 
     # ── Write report ─────────────────────────────────────────────────────────
     print(f"\nWriting evaluation report to: {report_path}")
-    build_report(all_summaries, config, report_path, skipped)
+    build_report(
+        all_summaries, config, report_path,
+        skipped_scenarios=skipped,
+        not_tested_ids=not_tested_ids,
+        cli_skipped_ids=cli_skipped_ids,
+    )
 
     # ── Final console summary ─────────────────────────────────────────────────
     print()
     print("=" * 60)
     print("  EVALUATION COMPLETE")
     print("=" * 60)
-    print(f"  Scenarios run     : {len(all_summaries)}")
-    print(f"  Scenarios skipped : {len(skipped)}")
-    not_run = len(scenarios_to_run) - len(all_summaries) - len(skipped)
-    print(f"  Scenarios not run : {not_run}")
-    print(f"  CSV               : {csv_path}")
-    print(f"  Report            : {report_path}")
+    print(f"  Scenarios measured     : {len(all_summaries)}")
+    print(f"  Skipped (user, S key)  : {len(skipped)}")
+    print(f"  Skipped (--skip-scenarios): {len(cli_skipped_ids)}")
+    print(f"  NOT TESTED (unavailable)  : {len(not_tested_ids)}")
+    print(f"  CSV                    : {csv_path}")
+    print(f"  Report                 : {report_path}")
     print()
-    if not_run > 0:
+    remaining = set(sc["id"] for sc in active_scenarios) - {s["scenario_id"] for s in all_summaries} - set(skipped)
+    if remaining:
+        print("  Scenarios not yet run:")
+        for sid in sorted(remaining):
+            print(f"    {sid}")
+        print()
         print("  To run remaining scenarios:")
         print("    python tests/evaluation/phase4_eval.py")
     print("  To view the report:")
