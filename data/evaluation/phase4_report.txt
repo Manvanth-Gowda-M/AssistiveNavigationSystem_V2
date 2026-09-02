@@ -1,7 +1,7 @@
 ======================================================================
   PHASE 4 DETECTION EVALUATION REPORT
 ======================================================================
-    Generated : 2026-09-02 13:18:53
+    Generated : 2026-09-02 14:56:58
     Platform  : Windows 10
     Python    : 3.10.11
     Model     : yolo11n
@@ -25,7 +25,7 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.59
+    Duration (seconds)                    : 1.49
     Total raw detections                  : 30
 ----------------------------------------------------------------------
     Correct-class observations            : 30
@@ -38,10 +38,10 @@
     Accepted class distribution:
         person                   : 30
     Confidence (accepted detections):
-      mean                                : 0.921
-      min                                 : 0.911
-      max                                 : 0.936
-      stdev                               : 0.006
+      mean                                : 0.913
+      min                                 : 0.907
+      max                                 : 0.923
+      stdev                               : 0.005
 ======================================================================
   SCENARIO: Chair
 ======================================================================
@@ -51,49 +51,33 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.41
-    Total raw detections                  : 30
+    Duration (seconds)                    : 1.32
+    Total raw detections                  : 52
 ----------------------------------------------------------------------
-    Correct-class observations            : 0
-    Wrong-class observations              : 30
-    No-detection observations             : 0
+    Correct-class observations            : 26
+    Wrong-class observations              : 2
+    No-detection observations             : 24
     FP observations (accepted)            : 0
     Ignored-suppressed events             : 0
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
     Accepted class distribution:
-        person                   : 30
+        chair                    : 26
+        person                   : 2
     Confidence (accepted detections):
-      mean                                : 0.921
-      min                                 : 0.915
-      max                                 : 0.926
-      stdev                               : 0.002
+      mean                                : 0.738
+      min                                 : 0.350
+      max                                 : 0.923
+      stdev                               : 0.170
 ======================================================================
   SCENARIO: Couch / sofa
 ======================================================================
     ID       : couch_visible
     Category : 1_true_positive
     Expected : couch
-    STATUS: MEASURED
 
-    Frames processed                      : 30
-    Duration (seconds)                    : 1.37
-    Total raw detections                  : 30
-----------------------------------------------------------------------
-    Correct-class observations            : 0
-    Wrong-class observations              : 30
-    No-detection observations             : 0
-    FP observations (accepted)            : 0
-    Ignored-suppressed events             : 0
-    FP rate (accepted/min)                : 0.00
-----------------------------------------------------------------------
-    Accepted class distribution:
-        person                   : 30
-    Confidence (accepted detections):
-      mean                                : 0.920
-      min                                 : 0.916
-      max                                 : 0.925
-      stdev                               : 0.002
+    STATUS: NOT TESTED
+    Reason: No real couch or sofa was available for physical testing. This scenario must not be run with a phone image or any substitute. Marked NOT TESTED until a real couch is available.
 ======================================================================
   SCENARIO: Dining table
 ======================================================================
@@ -103,23 +87,24 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.45
-    Total raw detections                  : 84
+    Duration (seconds)                    : 1.26
+    Total raw detections                  : 87
 ----------------------------------------------------------------------
     Correct-class observations            : 0
-    Wrong-class observations              : 29
-    No-detection observations             : 47
+    Wrong-class observations              : 30
+    No-detection observations             : 57
     FP observations (accepted)            : 0
-    Ignored-suppressed events             : 8
+    Ignored-suppressed events             : 0
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
     Accepted class distribution:
-        person                   : 29
+        bottle                   : 29
+        chair                    : 1
     Confidence (accepted detections):
-      mean                                : 0.736
-      min                                 : 0.394
-      max                                 : 0.925
-      stdev                               : 0.178
+      mean                                : 0.848
+      min                                 : 0.630
+      max                                 : 0.933
+      stdev                               : 0.056
 ======================================================================
   SCENARIO: Laptop
 ======================================================================
@@ -129,24 +114,25 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.42
-    Total raw detections                  : 67
+    Duration (seconds)                    : 1.3
+    Total raw detections                  : 90
 ----------------------------------------------------------------------
-    Correct-class observations            : 0
-    Wrong-class observations              : 59
-    No-detection observations             : 8
+    Correct-class observations            : 29
+    Wrong-class observations              : 29
+    No-detection observations             : 32
     FP observations (accepted)            : 0
     Ignored-suppressed events             : 0
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
     Accepted class distribution:
-        person                   : 31
-        bottle                   : 28
+        laptop                   : 29
+        person                   : 28
+        bottle                   : 1
     Confidence (accepted detections):
-      mean                                : 0.760
-      min                                 : 0.392
-      max                                 : 0.927
-      stdev                               : 0.159
+      mean                                : 0.749
+      min                                 : 0.364
+      max                                 : 0.958
+      stdev                               : 0.195
 ======================================================================
   SCENARIO: Bottle
 ======================================================================
@@ -156,24 +142,25 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.44
-    Total raw detections                  : 109
+    Duration (seconds)                    : 1.34
+    Total raw detections                  : 126
 ----------------------------------------------------------------------
-    Correct-class observations            : 9
-    Wrong-class observations              : 35
-    No-detection observations             : 65
+    Correct-class observations            : 29
+    Wrong-class observations              : 33
+    No-detection observations             : 64
     FP observations (accepted)            : 0
     Ignored-suppressed events             : 0
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
     Accepted class distribution:
-        person                   : 35
-        bottle                   : 9
+        person                   : 32
+        bottle                   : 29
+        laptop                   : 1
     Confidence (accepted detections):
-      mean                                : 0.586
-      min                                 : 0.354
-      max                                 : 0.880
-      stdev                               : 0.177
+      mean                                : 0.663
+      min                                 : 0.351
+      max                                 : 0.971
+      stdev                               : 0.278
 ======================================================================
   SCENARIO: Backpack
 ======================================================================
@@ -183,24 +170,25 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.47
-    Total raw detections                  : 65
+    Duration (seconds)                    : 1.28
+    Total raw detections                  : 141
 ----------------------------------------------------------------------
     Correct-class observations            : 0
-    Wrong-class observations              : 41
-    No-detection observations             : 24
+    Wrong-class observations              : 42
+    No-detection observations             : 99
     FP observations (accepted)            : 0
     Ignored-suppressed events             : 0
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
     Accepted class distribution:
-        person                   : 31
-        chair                    : 10
+        person                   : 32
+        chair                    : 9
+        bottle                   : 1
     Confidence (accepted detections):
-      mean                                : 0.607
-      min                                 : 0.356
-      max                                 : 0.817
-      stdev                               : 0.150
+      mean                                : 0.416
+      min                                 : 0.350
+      max                                 : 0.948
+      stdev                               : 0.098
 ======================================================================
   SCENARIO: USB charger (plug + cable)
 ======================================================================
@@ -211,24 +199,25 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.41
-    Total raw detections                  : 100
+    Duration (seconds)                    : 1.22
+    Total raw detections                  : 124
 ----------------------------------------------------------------------
     Correct-class observations            : 0
     Wrong-class observations              : 0
     No-detection observations             : 0
-    FP observations (accepted)            : 65
+    FP observations (accepted)            : 57
     Ignored-suppressed events             : 0
-    FP rate (accepted/min)                : 2774.77
+    FP rate (accepted/min)                : 2795.33
 ----------------------------------------------------------------------
     Accepted class distribution:
-        person                   : 42
-        cell phone               : 23
+        person                   : 30
+        bottle                   : 26
+        chair                    : 1
     Confidence (accepted detections):
-      mean                                : 0.579
-      min                                 : 0.368
-      max                                 : 0.844
-      stdev                               : 0.137
+      mean                                : 0.601
+      min                                 : 0.351
+      max                                 : 0.891
+      stdev                               : 0.163
 ======================================================================
   SCENARIO: Pen or pencil
 ======================================================================
@@ -239,26 +228,24 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.43
-    Total raw detections                  : 150
+    Duration (seconds)                    : 1.32
+    Total raw detections                  : 110
 ----------------------------------------------------------------------
     Correct-class observations            : 0
     Wrong-class observations              : 0
     No-detection observations             : 0
-    FP observations (accepted)            : 74
+    FP observations (accepted)            : 42
     Ignored-suppressed events             : 0
-    FP rate (accepted/min)                : 3107.94
+    FP rate (accepted/min)                : 1913.34
 ----------------------------------------------------------------------
     Accepted class distribution:
-        person                   : 32
-        laptop                   : 20
-        book                     : 14
-        cell phone               : 8
+        person                   : 35
+        bottle                   : 7
     Confidence (accepted detections):
-      mean                                : 0.501
-      min                                 : 0.351
-      max                                 : 0.880
-      stdev                               : 0.114
+      mean                                : 0.467
+      min                                 : 0.352
+      max                                 : 0.741
+      stdev                               : 0.077
 ======================================================================
   SCENARIO: Mobile phone
 ======================================================================
@@ -269,24 +256,24 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.38
-    Total raw detections                  : 65
+    Duration (seconds)                    : 1.36
+    Total raw detections                  : 105
 ----------------------------------------------------------------------
-    Correct-class observations            : 1
-    Wrong-class observations              : 3
-    No-detection observations             : 56
+    Correct-class observations            : 0
+    Wrong-class observations              : 38
+    No-detection observations             : 64
     FP observations (accepted)            : 0
-    Ignored-suppressed events             : 5
+    Ignored-suppressed events             : 3
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
     Accepted class distribution:
-        person                   : 3
-        cell phone               : 1
+        person                   : 29
+        bottle                   : 9
     Confidence (accepted detections):
-      mean                                : 0.496
+      mean                                : 0.601
       min                                 : 0.351
-      max                                 : 0.724
-      stdev                               : 0.178
+      max                                 : 0.745
+      stdev                               : 0.143
 ======================================================================
   SCENARIO: Empty desk (no navigation objects)
 ======================================================================
@@ -297,25 +284,23 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.39
-    Total raw detections                  : 98
+    Duration (seconds)                    : 1.31
+    Total raw detections                  : 33
 ----------------------------------------------------------------------
     Correct-class observations            : 0
     Wrong-class observations              : 0
     No-detection observations             : 0
-    FP observations (accepted)            : 12
+    FP observations (accepted)            : 1
     Ignored-suppressed events             : 0
-    FP rate (accepted/min)                : 516.97
+    FP rate (accepted/min)                : 45.75
 ----------------------------------------------------------------------
     Accepted class distribution:
-        bottle                   : 7
-        person                   : 4
-        book                     : 1
+        person                   : 1
     Confidence (accepted detections):
-      mean                                : 0.463
-      min                                 : 0.352
-      max                                 : 0.649
-      stdev                               : 0.097
+      mean                                : 0.561
+      min                                 : 0.561
+      max                                 : 0.561
+      stdev                               : 0.000
 ======================================================================
   SCENARIO: Empty scene — false positive rate measurement
 ======================================================================
@@ -324,29 +309,26 @@
     Expected : no_navigation_object
     STATUS: MEASURED
 
-    Frames processed                      : 742
-    Duration (seconds)                    : 60.01
-    Total raw detections                  : 1910
+    Frames processed                      : 922
+    Duration (seconds)                    : 60.03
+    Total raw detections                  : 933
 ----------------------------------------------------------------------
     Correct-class observations            : 0
     Wrong-class observations              : 0
     No-detection observations             : 0
-    FP observations (accepted)            : 898
-    Ignored-suppressed events             : 36
-    FP rate (accepted/min)                : 897.81
+    FP observations (accepted)            : 203
+    Ignored-suppressed events             : 0
+    FP rate (accepted/min)                : 202.90
 ----------------------------------------------------------------------
     Accepted class distribution:
-        person                   : 612
-        cell phone               : 145
-        chair                    : 78
-        bottle                   : 50
-        laptop                   : 11
-        book                     : 2
+        person                   : 200
+        chair                    : 2
+        laptop                   : 1
     Confidence (accepted detections):
-      mean                                : 0.692
-      min                                 : 0.351
-      max                                 : 0.955
-      stdev                               : 0.191
+      mean                                : 0.792
+      min                                 : 0.353
+      max                                 : 0.929
+      stdev                               : 0.171
 ======================================================================
   SCENARIO: Person — partially occluded (~50%)
 ======================================================================
@@ -356,25 +338,16 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 2.6
-    Total raw detections                  : 74
+    Duration (seconds)                    : 2.56
+    Total raw detections                  : 30
 ----------------------------------------------------------------------
-    Correct-class observations            : 32
-    Wrong-class observations              : 2
-    No-detection observations             : 36
+    Correct-class observations            : 0
+    Wrong-class observations              : 0
+    No-detection observations             : 30
     FP observations (accepted)            : 0
-    Ignored-suppressed events             : 4
+    Ignored-suppressed events             : 0
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
-    Accepted class distribution:
-        person                   : 32
-        book                     : 1
-        laptop                   : 1
-    Confidence (accepted detections):
-      mean                                : 0.721
-      min                                 : 0.391
-      max                                 : 0.925
-      stdev                               : 0.177
 ======================================================================
   SCENARIO: Chair — partially occluded (~50%)
 ======================================================================
@@ -384,24 +357,16 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.41
-    Total raw detections                  : 51
+    Duration (seconds)                    : 2.55
+    Total raw detections                  : 30
 ----------------------------------------------------------------------
     Correct-class observations            : 0
-    Wrong-class observations              : 22
-    No-detection observations             : 28
+    Wrong-class observations              : 0
+    No-detection observations             : 30
     FP observations (accepted)            : 0
-    Ignored-suppressed events             : 1
+    Ignored-suppressed events             : 0
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
-    Accepted class distribution:
-        cell phone               : 17
-        person                   : 5
-    Confidence (accepted detections):
-      mean                                : 0.625
-      min                                 : 0.380
-      max                                 : 0.851
-      stdev                               : 0.150
 ======================================================================
   SCENARIO: Bottle — at left or right edge of frame
 ======================================================================
@@ -411,24 +376,16 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.4
-    Total raw detections                  : 70
+    Duration (seconds)                    : 2.56
+    Total raw detections                  : 30
 ----------------------------------------------------------------------
     Correct-class observations            : 0
-    Wrong-class observations              : 47
-    No-detection observations             : 23
+    Wrong-class observations              : 0
+    No-detection observations             : 30
     FP observations (accepted)            : 0
     Ignored-suppressed events             : 0
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
-    Accepted class distribution:
-        cell phone               : 28
-        person                   : 19
-    Confidence (accepted detections):
-      mean                                : 0.533
-      min                                 : 0.351
-      max                                 : 0.691
-      stdev                               : 0.085
 ======================================================================
   SCENARIO: Person AND Chair together
 ======================================================================
@@ -438,24 +395,25 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 2.54
-    Total raw detections                  : 45
+    Duration (seconds)                    : 1.3
+    Total raw detections                  : 64
 ----------------------------------------------------------------------
-    Correct-class observations            : 8
-    Wrong-class observations              : 3
-    No-detection observations             : 34
+    Correct-class observations            : 30
+    Wrong-class observations              : 1
+    No-detection observations             : 33
     FP observations (accepted)            : 0
     Ignored-suppressed events             : 0
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
     Accepted class distribution:
-        person                   : 8
-        cell phone               : 3
+        person                   : 29
+        chair                    : 1
+        dog                      : 1
     Confidence (accepted detections):
-      mean                                : 0.431
-      min                                 : 0.353
-      max                                 : 0.509
-      stdev                               : 0.050
+      mean                                : 0.844
+      min                                 : 0.361
+      max                                 : 0.925
+      stdev                               : 0.125
 ======================================================================
   SCENARIO: Bottle + Laptop + Backpack
 ======================================================================
@@ -465,26 +423,28 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.39
-    Total raw detections                  : 62
+    Duration (seconds)                    : 1.31
+    Total raw detections                  : 310
 ----------------------------------------------------------------------
-    Correct-class observations            : 11
-    Wrong-class observations              : 24
-    No-detection observations             : 27
+    Correct-class observations            : 98
+    Wrong-class observations              : 35
+    No-detection observations             : 177
     FP observations (accepted)            : 0
     Ignored-suppressed events             : 0
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
     Accepted class distribution:
-        cell phone               : 14
-        laptop                   : 11
-        person                   : 9
-        chair                    : 1
+        bottle                   : 42
+        laptop                   : 29
+        backpack                 : 27
+        person                   : 21
+        chair                    : 13
+        book                     : 1
     Confidence (accepted detections):
-      mean                                : 0.715
-      min                                 : 0.361
-      max                                 : 0.933
-      stdev                               : 0.189
+      mean                                : 0.685
+      min                                 : 0.353
+      max                                 : 0.921
+      stdev                               : 0.166
 ======================================================================
   SCENARIO: Door — COCO capability gap test
 ======================================================================
@@ -495,27 +455,28 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.43
-    Total raw detections                  : 76
+    Duration (seconds)                    : 1.28
+    Total raw detections                  : 41
 ----------------------------------------------------------------------
     Correct-class observations            : 0
     Wrong-class observations              : 0
     No-detection observations             : 0
     FP observations (accepted)            : 0
     Ignored-suppressed events             : 0
-    Gap-analysis observations             : 76
+    Gap-analysis observations             : 14
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
     Accepted class distribution:
-        couch                    : 13
-        person                   : 11
-        chair                    : 9
-        cell phone               : 2
+        bottle                   : 2
+        laptop                   : 1
+        chair                    : 1
+        backpack                 : 1
+        person                   : 1
     Confidence (accepted detections):
-      mean                                : 0.581
-      min                                 : 0.357
-      max                                 : 0.896
-      stdev                               : 0.194
+      mean                                : 0.672
+      min                                 : 0.368
+      max                                 : 0.865
+      stdev                               : 0.169
 ======================================================================
   SCENARIO: Doorway (open door frame) — COCO capability gap test
 ======================================================================
@@ -526,26 +487,17 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 1.89
-    Total raw detections                  : 53
+    Duration (seconds)                    : 1.31
+    Total raw detections                  : 60
 ----------------------------------------------------------------------
     Correct-class observations            : 0
     Wrong-class observations              : 0
     No-detection observations             : 0
     FP observations (accepted)            : 0
     Ignored-suppressed events             : 0
-    Gap-analysis observations             : 52
+    Gap-analysis observations             : 59
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
-    Accepted class distribution:
-        couch                    : 5
-        chair                    : 3
-        person                   : 1
-    Confidence (accepted detections):
-      mean                                : 0.455
-      min                                 : 0.352
-      max                                 : 0.814
-      stdev                               : 0.144
 ======================================================================
   SCENARIO: Stairs / staircase — COCO capability gap test
 ======================================================================
@@ -556,38 +508,31 @@
     STATUS: MEASURED
 
     Frames processed                      : 30
-    Duration (seconds)                    : 2.63
-    Total raw detections                  : 54
+    Duration (seconds)                    : 1.54
+    Total raw detections                  : 31
 ----------------------------------------------------------------------
     Correct-class observations            : 0
     Wrong-class observations              : 0
     No-detection observations             : 0
     FP observations (accepted)            : 0
     Ignored-suppressed events             : 0
-    Gap-analysis observations             : 54
+    Gap-analysis observations             : 3
     FP rate (accepted/min)                : 0.00
 ----------------------------------------------------------------------
-    Accepted class distribution:
-        couch                    : 29
-        chair                    : 4
-        person                   : 1
-    Confidence (accepted detections):
-      mean                                : 0.689
-      min                                 : 0.472
-      max                                 : 0.832
-      stdev                               : 0.110
 ======================================================================
   OVERALL FINDINGS
 ======================================================================
-    Scenarios measured     : 20
-    Scenarios not measured : 0
+    Scenarios measured     : 19
+    NOT TESTED (unavailable): 1 (couch_visible)
+    Skipped (user choice)  : 0
+    Not yet measured       : 0
 
     Aggregated across all MEASURED scenarios:
-    Total correct-class observations      : 91
-    Total wrong-class observations        : 325
-    Total no-detection observations       : 348
-    Total FP observations (accepted)      : 1049
-    Total ignored-class suppressions      : 54
+    Total correct-class observations      : 242
+    Total wrong-class observations        : 210
+    Total no-detection observations       : 640
+    Total FP observations (accepted)      : 303
+    Total ignored-class suppressions      : 3
 ======================================================================
   YOLO11n CAPABILITY GAP: DOORS AND STAIRS
 ======================================================================
@@ -607,17 +552,17 @@
   Observed results from Category 6 scenarios:
 
     Door — COCO capability gap test:
-      Accepted detections: {'chair': 9, 'couch': 13, 'cell phone': 2, 'person': 11}
+      Accepted detections: {'laptop': 1, 'bottle': 2, 'chair': 1, 'backpack': 1, 'person': 1}
       No-detection observations: 0
       Total frames: 30
 
     Doorway (open door frame) — COCO capability gap test:
-      Accepted detections: {'person': 1, 'chair': 3, 'couch': 5}
+      Accepted detections: NONE
       No-detection observations: 0
       Total frames: 30
 
     Stairs / staircase — COCO capability gap test:
-      Accepted detections: {'couch': 29, 'person': 1, 'chair': 4}
+      Accepted detections: NONE
       No-detection observations: 0
       Total frames: 30
 ======================================================================
@@ -638,27 +583,27 @@
 
     USB charger (plug + cable):
       V1 concern: Previously observed as: cell phone
-      FP observations (reached accepted output): 65
+      FP observations (reached accepted output): 57
       Correctly suppressed events: 0
-      Accepted classes: {'person': 42, 'cell phone': 23}
+      Accepted classes: {'person': 30, 'chair': 1, 'bottle': 26}
 
     Pen or pencil:
       V1 concern: Previously observed as: baseball bat
-      FP observations (reached accepted output): 74
+      FP observations (reached accepted output): 42
       Correctly suppressed events: 0
-      Accepted classes: {'cell phone': 8, 'person': 32, 'book': 14, 'laptop': 20}
+      Accepted classes: {'person': 35, 'bottle': 7}
 
     Mobile phone:
       V1 concern: Previously observed as: remote
       FP observations (reached accepted output): 0
-      Correctly suppressed events: 5
-      Accepted classes: {'cell phone': 1, 'person': 3}
+      Correctly suppressed events: 3
+      Accepted classes: {'person': 29, 'bottle': 9}
 
     Empty desk (no navigation objects):
       V1 concern: Previously observed: toothbrush, tie, misc phantom detections
-      FP observations (reached accepted output): 12
+      FP observations (reached accepted output): 1
       Correctly suppressed events: 0
-      Accepted classes: {'bottle': 7, 'book': 1, 'person': 4}
+      Accepted classes: {'person': 1}
 ======================================================================
   KNOWN LIMITATIONS OF THIS EVALUATION
 ======================================================================

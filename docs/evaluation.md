@@ -301,9 +301,16 @@ A misclassification is not a workaround — it is a different kind of error.
 
 | Scenario | Frames | Detections | Classes detected | Assessment |
 |---|---|---|---|---|
-| door_gap_analysis | 30 | 35 accepted | couch:13, person:11, chair:9, cell_phone:2 | **No door detection. Misclassified as furniture/person.** |
-| doorway_gap_analysis | 30 | 9 accepted | couch:5, chair:3, person:1 | No doorway detection. Low-frequency misclassifications. |
-| stairs_gap_analysis | 30 | 34 accepted | couch:29, chair:4, person:1 | **Stairs→couch at 0.689 mean conf. Consistent and safety-critical.** |
+| door_gap_analysis | 30 | 6 accepted (scattered) | bottle:2, laptop:1, chair:1, backpack:1, person:1 | No dominant wrong class. Low-count scattered FPs. |
+| doorway_gap_analysis | 30 | 0 accepted | NONE | Model produces no confident detection for a doorway. |
+| stairs_gap_analysis | 30 | 0 accepted | NONE | Model produces no confident detection for stairs. |
+
+**Corrected note:** The first (invalid) run showed `couch` dominating door
+and stairs scenarios. This was caused by the evaluator remaining in frame.
+The corrected finding is that YOLO11n **silently ignores** doors and stairs
+when no person is present — producing zero accepted detections. This is
+less dangerous than wrong-class alerts, but the gap (no warning about a
+door or staircase) remains a documented safety limitation.
 
 ### Future mitigation options (not in scope for Phase 4)
 
@@ -359,33 +366,52 @@ detections may still occur. Phase 4 records whether they do.
 
 | Scenario | Object shown | FP in accepted output | Correctly suppressed | Notes |
 |---|---|---|---|---|
-| usb_charger | USB charger | **65** (person:42, cell_phone:23) | 0 | V1 concern confirmed: cell_phone appeared |
-| pen_or_pencil | Pen/pencil | **74** (person:32, laptop:20, book:14, cell_phone:8) | 0 | baseball_bat NOT observed; new classes instead |
-| phone_only | Mobile phone | 0 | 5 (remote suppressed) | V1 remote confusion not reproduced |
-| empty_desk | Empty desk | **12** (bottle:7, person:4, book:1) | 0 | toothbrush/tie NOT reproduced |
+| usb_charger | USB charger | **57** (person:30, bottle:26, chair:1) | 0 | cell_phone NOT reproduced (corrected run) |
+| pen_or_pencil | Pen/pencil | **42** (person:35, bottle:7) | 0 | baseball_bat NOT reproduced; FPs are background |
+| phone_only | Mobile phone | 0 | 3 (tie suppressed) | phone largely undetected at 0.35 threshold |
+| empty_desk | Empty desk | **1** (person:1, conf 0.561) | 0 | Very low rate; V1 phantoms not reproduced |
 
 ---
 
-## Phase 4 Results
+## Phase 4 Results — Corrected Physical Evaluation
 
-**Status: ALL 20 SCENARIOS MEASURED**
-Evaluation date: 2026-09-02. All numbers sourced directly from
-`data/evaluation/phase4_results.csv` (3,223 rows total).
+**Status: 19/20 scenarios measured. 1 scenario NOT TESTED (couch_visible — no real couch available).**
+
+Evaluation date: 2026-09-02. All numbers sourced from
+`data/evaluation/phase4_results.csv` (corrected run, real physical objects).
 
 ---
 
-### Overall raw counts (all 20 scenarios combined)
+### Methodology note — corrected run
+
+The first evaluation run (2026-09-02 13:18) was invalidated because the
+evaluator remained in the camera frame during object-only scenarios, causing
+the `person` class to dominate detections. The bbox analysis confirmed this:
+person bboxes in `chair_visible`, `couch_visible`, and others were
+pixel-for-pixel identical to `person_standing`. None of those object
+detections were valid.
+
+The corrected run (2026-09-02 14:56) was conducted with the evaluator
+physically out of frame for all object-only scenarios. The person detections
+that remain in some scenarios (e.g. `bottle_visible`, `backpack_visible`) are
+clearly distinct from the `person_standing` reference bbox — they are
+low-confidence, large-area, top/edge-anchored detections caused by background
+patterns, not the evaluator's body.
+
+---
+
+### Overall raw counts — corrected run (19 measured scenarios)
 
 | Observation type | Count |
 |---|---|
-| correct_class_observation | 91 |
-| wrong_class_observation | 325 |
-| no_detection_observation | 348 |
-| false_positive_observation | 1,049 |
-| ignored_class_suppressed | 54 |
-| gap_observation (Cat 6) | 182 |
-| empty_scene_correct | 1,174 |
-| **Total rows** | **3,223** |
+| correct_class_observation | 242 |
+| wrong_class_observation | 210 |
+| no_detection_observation | 640 |
+| false_positive_observation | 303 |
+| ignored_class_suppressed | 3 |
+| gap_observation (Cat 6) | 76 |
+| empty_scene_correct | varies |
+| **NOT TESTED** | couch_visible (1 scenario) |
 
 ---
 
@@ -393,194 +419,255 @@ Evaluation date: 2026-09-02. All numbers sourced directly from
 
 | Scenario | Frames | Correct-class | Wrong-class | No-det | Accepted classes | Conf mean |
 |---|---|---|---|---|---|---|
-| person_standing | 30 | **30** | 0 | 0 | person:30 | 0.921 |
-| chair_visible | 30 | 0 | **30** | 0 | person:30 | 0.921 |
-| couch_visible | 30 | 0 | **30** | 0 | person:30 | 0.920 |
-| dining_table_visible | 30 | 0 | 29 | **47** | person:29 | 0.736 |
-| laptop_visible | 30 | 0 | **59** | 8 | person:31, bottle:28 | 0.760 |
-| bottle_visible | 30 | 9 | **35** | 65 | person:35, bottle:9 | 0.586 |
-| backpack_visible | 30 | 0 | **41** | 24 | person:31, chair:10 | 0.607 |
+| person_standing | 30 | **30** | 0 | 0 | person:30 | 0.913 |
+| chair_visible | 30 | **26** | 2 | 24 | chair:26, person:2 | 0.738 |
+| **couch_visible** | — | — | — | — | **NOT TESTED** | — |
+| dining_table_visible | 30 | 0 | **30** | 57 | bottle:29, chair:1 | 0.848 |
+| laptop_visible | 30 | **29** | 29 | 32 | laptop:29, person:28, bottle:1 | 0.749 |
+| bottle_visible | 30 | **29** | 33 | 64 | person:32, bottle:29, laptop:1 | 0.663 |
+| backpack_visible | 30 | 0 | **42** | 99 | person:32, chair:9, bottle:1 | 0.416 |
 
-**Key finding — Category 1:**
-Only `person` was detected correctly and consistently (30/30 frames, conf mean 0.921).
-All other navigation-critical objects were **never detected as their correct class** or
-detected only rarely. The dominant wrong-class detection across all scenarios was
-`person` — the model interpreted chairs, couches, tables, laptops, bottles, and
-backpacks as people in a large proportion of frames.
+**Key findings — Category 1 (corrected):**
+
+- `person`: Detected correctly in 30/30 frames at high confidence (mean 0.913,
+  stdev 0.005). The most reliable navigation class in this system.
+
+- `chair`: Detected correctly in 26/30 frames (87% frame coverage). Confidence
+  was variable (mean 0.738, stdev 0.170, min 0.350). The 2 wrong-class
+  observations were `person` at low confidence — plausibly the model interpreting
+  the chair legs/back as a partial person. The 4 no-detection frames suggest
+  intermittent detection at the confidence floor.
+
+- `couch / sofa`: NOT TESTED. No real couch available. Will remain not tested
+  until a physical couch is available for evaluation.
+
+- `dining table`: Never detected as `dining table` in 30 frames. The dominant
+  detected class was `bottle` (29 accepted, mean conf 0.848, bbox at ~437px x1).
+  Inspecting the bboxes, these `bottle` detections are positioned consistently
+  in a small region (~437–500px x1, ~300–465px y1) — they represent objects ON
+  the table surface (cups, bottles, utensils), not the table itself.
+  `dining table` is not in the COCO training distribution for this viewing angle.
+  The 57 no-detection rows confirm the table itself was not detected.
+
+- `laptop`: Detected correctly in 29/30 frames (97% frame coverage). The 28
+  `person` wrong-class observations in the same scenario (avg_x1=426, avg_y1=287,
+  confined to lower-right quadrant, avg_conf=0.565) are background pattern FPs
+  at the laptop's surroundings, not the evaluator. Detection quality is good.
+
+- `bottle`: Detected correctly in 29/30 frames (97% frame coverage). The 32
+  `person` wrong-class observations (avg_x1=14, avg_y1=12, conf ~0.37–0.53) are
+  large low-confidence bboxes spanning most of the frame — these are background
+  texture FPs at the confidence floor, not a person. Detection quality is good.
+
+- `backpack`: Never detected as `backpack` in the standalone scenario. The 42
+  wrong-class observations were `person` (32) and `chair` (9) — both background
+  elements visible near the backpack. Backpack detection is unreliable alone.
 
 ---
 
-### Category 2 — False Positive Probe Results
+### Category 2 — False Positive Probe Results (corrected)
 
 | Scenario | Frames | FP obs (accepted) | FP/min | Accepted classes |
 |---|---|---|---|---|
-| usb_charger | 30 | 65 | 2,774 | person:42, cell_phone:23 |
-| pen_or_pencil | 30 | 74 | 3,108 | person:32, laptop:20, book:14, cell_phone:8 |
-| phone_only | 30 | 0 | 0.00 | person:3, cell_phone:1 |
-| empty_desk | 30 | 12 | 517 | bottle:7, person:4, book:1 |
+| usb_charger | 30 | 57 | 2,795 | person:30, bottle:26, chair:1 |
+| pen_or_pencil | 30 | 42 | 1,913 | person:35, bottle:7 |
+| phone_only | 30 | 0 | 0.00 | person:29, bottle:9 |
+| empty_desk | 30 | 1 | 45.8 | person:1 |
 
-**Key finding — Category 2:**
-- **USB charger**: produced 65 accepted FP detections in 30 frames. The V1 concern
-  (charger → cell phone) was confirmed: 23 `cell phone` detections. Additionally,
-  42 `person` detections were produced — the background/user reflection was the
-  likely cause.
-- **Pen/pencil**: produced 74 accepted FP detections. The V1 concern (pen → baseball
-  bat) was NOT observed — `baseball bat` did not appear. However the pen triggered
-  `laptop` (20), `book` (14), and `cell phone` (8) misclassifications. Person was
-  also detected (32), again likely from background.
-- **Phone**: largely undetected — only 4 accepted detections in 30 frames (1 correct
-  `cell phone`, 3 wrong `person`). The V1 concern (phone → remote) was NOT confirmed;
-  `remote` was correctly suppressed (5 ignored events).
-- **Empty desk**: 12 FP observations. No toothbrush or tie appeared (V1 phantoms not
-  reproduced). Bottle (7) and person (4) were falsely accepted.
+**Key findings — Category 2 (corrected):**
+
+- `USB charger`: The V1 concern (charger → cell phone) was **not reproduced** in
+  this corrected run. No `cell phone` detections appeared. Instead: `person` (30,
+  low-conf, large top-edge bboxes — background FP) and `bottle` (26, mean conf
+  ~0.60 — the charger cable/plug shape is triggering bottle detections). The
+  charger itself is not detected as any correct class. The high FP/min rate is
+  driven by background pattern detections, not the charger specifically.
+
+- `Pen/pencil`: `baseball bat` V1 concern was **not reproduced**. Instead:
+  `person` (35, low-conf background FPs) and `bottle` (7, low conf). The pen
+  itself is not detected as any specific class. No dangerous misclassification
+  to a navigation category was observed.
+
+- `Mobile phone`: `remote` V1 concern was **not reproduced** — `tie` was
+  correctly suppressed (3 ignored events). `cell phone` was never accepted.
+  The phone is largely undetected (64 no-detection rows). `person` (29) and
+  `bottle` (9) accepted detections are low-conf background FPs.
+  **Note:** The phone scenario had `correct_class_observations: 0` because
+  `cell phone` was never accepted — inspection shows `cell phone` appears in
+  raw detections but falls below the confidence threshold, or the phone angle/
+  placement made it unrecognisable at 0.35 threshold.
+
+- `Empty desk`: Only 1 accepted FP (`person`, conf 0.561) in 30 frames.
+  FP rate 45.8/min is the base room background rate, not a specific object
+  misclassification. V1 phantom classes (toothbrush, tie) were not reproduced.
 
 ---
 
-### Category 3 — Empty Scene FP Rate (60-second test)
+### Category 3 — Empty Scene FP Rate (corrected, 60 seconds)
 
 | Scene | Duration (s) | Frames | Accepted total | Accepted/min |
 |---|---|---|---|---|
-| empty_scene_fp_rate | 60.01 | 742 | 898 | **897.81** |
+| empty_scene_fp_rate | 60.03 | 922 | 203 | **202.9** |
 
-Accepted class breakdown over 60 seconds:
+Accepted class breakdown:
 
-| Class | Count |
-|---|---|
-| person | 612 |
-| cell phone | 145 |
-| chair | 78 |
-| bottle | 50 |
-| laptop | 11 |
-| book | 2 |
+| Class | Count | Notes |
+|---|---|---|
+| person | 200 | Avg conf 0.792, bbox confined to lower-right quadrant (x1~409, y1~250–480, width~190px). Consistent small region. Likely a background element (picture frame, poster, or similar pattern) being interpreted as a partial person. |
+| chair | 2 | Low-count background element |
+| laptop | 1 | Low-count background element |
 
-**Key finding — Category 3:**
-The empty-scene FP rate of ~898 accepted detections/minute is very high. This
-is the single most important finding of Phase 4. It means that in the tested
-environment (a room with background clutter), YOLO11n continuously produces
-navigation-relevant detections even when no navigation objects are intentionally
-present. `person` dominated at 612 detections — the background was being
-misclassified as a person at high frequency.
+**Key finding — Category 3 (corrected):**
+FP rate dropped from ~898/min (first run, evaluator partially in frame) to
+**202.9/min** in the corrected run. The 200 `person` FPs come from a single
+consistent region in the lower-right quadrant (confirmed by bbox clustering:
+avg x1=409, y1=250, x2=599, y2=480, conf mean 0.792). This is a specific
+background element in the test room being persistently misclassified as a
+partial person at moderate-to-high confidence.
 
-This result directly informs the Phase 10 temporal confirmation parameters:
-`CONFIRMATION_FRAMES` and `CLASS_STABILITY_THRESHOLD` must be set to filter out
-the overwhelming majority of these per-frame FPs before they reach the alert system.
-
----
-
-### Category 4 — Partial Visibility / Occlusion Results
-
-| Scenario | Frames | Correct-class | Wrong-class | No-det | Accepted classes | Conf mean |
-|---|---|---|---|---|---|---|
-| partial_person | 30 | 32 | 2 | 36 | person:32, book:1, laptop:1 | 0.721 |
-| partial_chair | 30 | 0 | 22 | 28 | cell_phone:17, person:5 | 0.625 |
-| edge_of_frame_bottle | 30 | 0 | 47 | 23 | cell_phone:28, person:19 | 0.533 |
-
-**Key finding — Category 4:**
-- Partially occluded person: still detected correctly in 32/30 row observations
-  (multiple detections per frame counted). Confidence dropped to mean 0.721 vs
-  0.921 fully visible — a meaningful reduction under occlusion.
-- Partially occluded chair: never detected as `chair`. `cell phone` dominated (17).
-- Bottle at frame edge: never detected as `bottle`. `cell phone` dominated (28).
-  Rectangular objects at the frame edge are consistently misclassified as
-  `cell phone` — a systematic pattern worth noting.
+This finding is critical for Phase 10 (temporal confirmation): even in a
+"genuinely empty" scene, the detector produces ~200 accepted
+`person` detections per minute from a static background feature.
+**Temporal confirmation with sufficiently high `CONFIRMATION_FRAMES` is
+the primary mitigation. A background feature is static — it will pass
+temporal confirmation. A minimum-bounding-box-size filter is also needed.**
 
 ---
 
-### Category 5 — Multiple Objects Results
+### Category 4 — Partial Visibility / Occlusion Results (corrected)
+
+| Scenario | Frames | Correct-class | Wrong-class | No-det | Notes |
+|---|---|---|---|---|---|
+| partial_person | 30 | 0 | 0 | **30** | No detections at all |
+| partial_chair | 30 | 0 | 0 | **30** | No detections at all |
+| edge_of_frame_bottle | 30 | 0 | 0 | **30** | No detections at all |
+
+**Key finding — Category 4 (corrected):**
+All three occlusion scenarios produced zero accepted detections across all
+30 frames. The one sub-threshold raw detection seen was `tv` at conf 0.154
+in `partial_person`. This means:
+
+- A person occluded ~50% falls below the 0.35 threshold entirely.
+- A chair occluded ~50% produces no accepted detection.
+- A bottle at the frame edge produces no accepted detection.
+
+**This is a significant finding.** Partial visibility completely suppresses
+detection for these objects at the current confidence threshold. For navigation
+use, this means the system will not alert about partially hidden obstacles.
+Phase 10 temporal confirmation cannot compensate for zero raw detections.
+
+---
+
+### Category 5 — Multiple Objects Results (corrected)
 
 | Scenario | Expected | Frames | Correct-class | Wrong-class | No-det | Accepted classes |
 |---|---|---|---|---|---|---|
-| person_and_chair | person+chair | 30 | 8 | 3 | 34 | person:8, cell_phone:3 |
-| bottle_laptop_backpack | bottle+laptop+backpack | 30 | 11 | 24 | 27 | cell_phone:14, laptop:11, person:9, chair:1 |
+| person_and_chair | person+chair | 30 | 30 | 1 | 33 | person:29, chair:1, dog:1 |
+| bottle_laptop_backpack | bottle+laptop+backpack | 30 | 98 | 35 | 177 | bottle:42, laptop:29, backpack:27, person:21, chair:13, book:1 |
 
-**Key finding — Category 5:**
-- Person+Chair: `chair` was never detected. Person was detected in only 8/30 row
-  observations. Confidence was low (mean 0.431) suggesting the multi-object scene
-  confused the model.
-- Bottle+Laptop+Backpack: `laptop` was detected correctly (11 times). `bottle` and
-  `backpack` were never detected as their correct class. `cell phone` (14) dominated
-  the wrong-class detections — rectangular screen-like objects strongly trigger it.
+**Key finding — Category 5 (corrected):**
+
+- `person_and_chair`: Person was detected in 29/30 frames (consistent with
+  standalone result). Chair was detected in only 1 frame — adding a person
+  to the scene suppressed chair detection. `dog` appeared once (conf 0.361)
+  — a marginal low-confidence misclassification.
+
+- `bottle+laptop+backpack`: This is the **first scenario where backpack was
+  detected** — 27 accepted detections, mean conf ~0.79, bbox lower-right
+  quadrant. This confirms backpack detection requires a multi-object context
+  or specific positioning. Bottle (42) and laptop (29) also detected. The 35
+  wrong-class observations were `person` (21) and `chair` (13) — background
+  FPs. No `backpack` was detected in the standalone scenario.
 
 ---
 
-### Category 6 — COCO Gap Analysis Results
+### Category 6 — COCO Gap Analysis Results (corrected)
 
-| Scenario | Frames | Gap obs. | Accepted classes (misclassifications) |
+| Scenario | Frames | Gap obs. | Accepted classes |
 |---|---|---|---|
-| door_gap_analysis | 30 | 76 | couch:13, person:11, chair:9, cell_phone:2 |
-| doorway_gap_analysis | 30 | 52 | couch:5, chair:3, person:1 |
-| stairs_gap_analysis | 30 | 54 | couch:29, chair:4, person:1 |
+| door_gap_analysis | 30 | 14 | bottle:2, laptop:1, chair:1, backpack:1, person:1 |
+| doorway_gap_analysis | 30 | 59 | **NONE** |
+| stairs_gap_analysis | 30 | 3 | **NONE** |
 
-**Key finding — Category 6:**
-Doors and stairs produced **zero correct detections** as expected — they are not
-COCO classes. However the model did NOT produce zero detections. Instead it
-consistently misclassified these scenes:
+**Key finding — Category 6 (corrected):**
+The corrected run shows a substantially different result from the first run.
+The first run showed `couch` dominating door and stairs — this was caused by
+the evaluator being in frame. With the evaluator absent:
 
-- **Door** → misclassified as `couch` (13), `person` (11), `chair` (9)
-- **Doorway** → misclassified as `couch` (5), `chair` (3)
-- **Stairs** → misclassified as `couch` (29) at confidence mean 0.689
+- `Door`: 14 gap observations, scattered low-count misclassifications
+  (bottle:2, laptop:1, chair:1, backpack:1, person:1). No dominant wrong class.
+- `Doorway`: 59 gap observations — 0 accepted detections. The model produces
+  no confident detection for a doorway.
+- `Stairs`: 3 gap observations — 0 accepted detections.
 
-The `couch` misclassification for stairs is particularly notable — it was consistent
-(29/34 accepted detections) and at moderate confidence (0.689). This is a hazardous
-pattern: the system might say "couch ahead" when stairs are present. This gap must
-be documented prominently in the safety disclaimer.
-
-**These misclassifications would reach the user as wrong alerts if no mitigation
-is applied.** They are not filtered by the ignored list because `couch` and `chair`
-are valid navigation classes. Temporal confirmation (Phase 10) and proximity-based
-gating are the primary mitigations in the current design.
+**Corrected conclusion:** YOLO11n produces **no reliable detection at all**
+for doors or stairs when the evaluator is not in frame. The `couch` pattern
+seen in the first run was a contamination artefact. The true finding is that
+the model simply ignores these structures — which is consistent with them not
+being COCO classes. Zero detections, not wrong detections.
 
 ---
 
-### Ignored-class suppression summary
+### Ignored-class suppression summary (corrected run)
 
-The Phase 3 filter's ignored list correctly blocked these V1 problem classes
-from reaching accepted navigation output:
-
-| Suppressed class | Count blocked |
+| Suppressed class | Count |
 |---|---|
-| toothbrush | 38 |
-| tie | 12 |
-| knife | 2 |
-| remote | 2 |
-| **Total** | **54** |
+| tie | 3 |
 
-These 54 detections would have reached the alert system in V1. The V2 filter
-correctly suppressed all of them. However `baseball bat` did not appear in any
-scenario — the pen/pencil V1 confusion manifested differently (as `laptop`/`book`
-instead) under YOLO11n.
+Only 3 suppression events observed in the corrected run (all `tie` — from the
+phone scenario, where the phone edge/shape triggered a low-confidence `tie`
+detection). The V1 phantom classes (toothbrush×38, tie×12 in the first run)
+were substantially reduced in the corrected run, confirming they were largely
+caused by the evaluator being in frame.
 
 ---
 
-### Overall findings and implications for Phase 5+
+### Overall findings and implications — corrected
 
-**What works well:**
-1. `person` detection is reliable and consistent when a person is clearly
-   visible (30/30, conf 0.921). This is the most safety-critical class.
-2. The ignored-class filter correctly suppresses all V1 phantom classes.
-3. Blank frames produce zero detections — no hallucination on null input.
+**What works reliably:**
 
-**What does not work well:**
-1. Non-person navigation objects are detected poorly or not at all. Chair,
-   couch, table, backpack, and bottle detection is unreliable on this hardware
-   and in this environment.
-2. The `person` class dominates wrong-class detections across all scenarios —
-   the model conflates many objects and background elements with people.
-3. The empty-scene FP rate (~898/min) is far too high to use raw detection
-   output for navigation alerts without temporal filtering.
-4. Rectangular objects at frame edges → `cell phone` is a systematic pattern.
-5. Stairs → `couch` (29/34 frames) is a safety-critical misclassification gap.
+| Object | Detection rate | Confidence | Notes |
+|---|---|---|---|
+| `person` (full view) | 30/30 = 100% | mean 0.913 | Highly reliable |
+| `laptop` (full view) | 29/30 = 97% | varies | Good; co-detects background as person |
+| `bottle` (full view) | 29/30 = 97% | varies | Good; co-detects background as person |
+| `chair` (full view) | 26/30 = 87% | mean 0.738 | Acceptable; confidence variable |
+| `backpack` (multi-object) | 27/30 frames | mean ~0.79 | Only in multi-object context |
+
+**What does not work or is unreliable:**
+
+| Finding | Evidence |
+|---|---|
+| `dining table` never detected | 0/30 correct; objects ON table detected as bottle instead |
+| `backpack` alone never detected | 0/30 correct in standalone; only detected in multi-object group |
+| Partial visibility suppresses all detection | 0/90 correct across all 3 occlusion scenarios |
+| Empty scene has 203 FP/min from static background | Persistent lower-right region misclassified as `person` at conf ~0.79 |
+| `phone` largely undetected alone | 0/30 correct-class observations |
+
+**What changed from the first (invalid) run:**
+
+| Claim in first run | Corrected finding |
+|---|---|
+| stairs → couch at 0.689 conf (safety critical) | Corrected: stairs → 0 accepted detections. Couch was from evaluator in frame. |
+| door → couch/person/chair | Corrected: door → few scattered low-conf FPs. No dominant wrong class. |
+| empty scene FP rate ~898/min | Corrected: ~203/min — still high, but specific to one background region |
+| chair, couch, table, backpack never detected | Corrected: chair detected 87%, laptop 97%, bottle 97%, backpack in multi-object |
 
 **Direct implications for subsequent phases:**
-- **Phase 5 (Tracking):** Track stability will be poor for non-person classes
-  due to inconsistent detections. Design tracking parameters conservatively.
-- **Phase 10 (Temporal confirmation):** `CONFIRMATION_FRAMES` must be high
-  enough to absorb the ~898 FP/min raw rate. 5 frames is likely insufficient;
-  8–10 frames should be evaluated.
-- **Phase 15 (FP reduction):** The `person` over-detection pattern needs
-  dedicated investigation — possibly minimum bounding-box size filtering.
-- **Future:** Open-vocabulary detection or a secondary classifier for doors/stairs
-  should be evaluated to close the COCO gap for safety-critical obstacles.
+
+- **Phase 10 (Temporal confirmation):** `CONFIRMATION_FRAMES` must be tuned
+  against the ~203 FP/min background rate. At ~15 FPS detection, 203/min = ~3.4
+  FPs per second. A 10-frame confirmation window at 15 FPS = 0.67s — the
+  probability of the same background region producing 10 consecutive frames is
+  high. A minimum-area filter OR a position-stability filter is needed alongside
+  temporal confirmation.
+- **Phase 15 (FP reduction):** The persistent background `person` FP is the
+  primary target. Minimum bounding-box area relative to frame and position-
+  stability checks should be investigated.
+- **Doors/stairs:** The corrected finding (0 detections) is actually less
+  dangerous than the first finding (wrong-class confident detections). A zero
+  detection means silence — a wrong-class detection means a wrong alert.
+  Silence is better, but the gap remains a documented limitation.
 
 ---
 
