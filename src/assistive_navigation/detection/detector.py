@@ -451,6 +451,20 @@ class ObjectDetector:
             return 0.0
         return self._total_latency_ms / self._inference_count
 
+    def get_model(self):
+        """
+        Return the internal Ultralytics YOLO model object.
+
+        This is used by ObjectTracker to reuse the same model instance for
+        tracking — avoiding the cost of loading YOLO twice.
+
+        Only call this after load() has been called.
+
+        Returns:
+            The Ultralytics YOLO model object, or None if not yet loaded.
+        """
+        return self._model
+
     def __repr__(self) -> str:
         status = "loaded" if self._is_loaded else "not loaded"
         return (
