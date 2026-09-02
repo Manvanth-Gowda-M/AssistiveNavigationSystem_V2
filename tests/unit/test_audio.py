@@ -52,7 +52,7 @@ def config():
 
 @pytest.fixture(scope="module")
 def tts(config):
-    """Initialise a TextToSpeech instance once per module."""
+    """Initialise a TextToSpeech instance once per module — used by LOGIC tests only."""
     from assistive_navigation.audio.tts import TextToSpeech
     t = TextToSpeech(config)
     t.initialise()
@@ -375,82 +375,89 @@ class TestHardwareSpeech:
     requires_audio = pytest.mark.requires_audio
 
     @requires_audio
-    def test_speak_sync_produces_audio(self, tts):
+    def test_speak_sync_produces_audio(self, config):
         """
         PASS CONDITION 3:
         speak_sync() with a real sentence must complete without error.
         You should hear the message through your speakers/headphones.
+        Uses a fresh TTS instance to avoid shared-engine issues.
         """
-        if not tts.is_available:
+        from assistive_navigation.audio.tts import TextToSpeech
+        t = TextToSpeech(config)
+        if not t.initialise():
             pytest.skip("TTS not available — no audio device.")
 
         print("\n  >>> HARDWARE TEST: You should hear 'Navigation system ready.'")
         t0 = time.perf_counter()
-        tts.speak_sync("Navigation system ready.")
+        t.speak_sync("Navigation system ready.")
         elapsed = time.perf_counter() - t0
+        t.shutdown()
 
         print(f"  Speech completed in {elapsed:.3f}s (includes audio playback)")
         assert elapsed > 0.0, "speak_sync returned instantly — speech may not have played"
 
     @requires_audio
-    def test_speak_sync_navigation_alert(self, tts):
+    def test_speak_sync_navigation_alert(self, config):
         """Speak a typical navigation alert sentence."""
-        if not tts.is_available:
+        from assistive_navigation.audio.tts import TextToSpeech
+        t = TextToSpeech(config)
+        if not t.initialise():
             pytest.skip("TTS not available.")
 
         print("\n  >>> You should hear 'Person ahead, very close.'")
-        tts.speak_sync("Person ahead, very close.")
+        t.speak_sync("Person ahead, very close.")
+        t.shutdown()
 
     @requires_audio
-    def test_speak_sync_multiple_messages(self, tts):
+    def test_speak_sync_multiple_messages(self, config):
         """
         PASS CONDITION 8 (hardware):
         Multiple speak_sync() calls must complete without error.
-        On Windows SAPI5, runAndWait() schedules speech asynchronously;
-        actual playback occurs via the Windows audio pipeline. We verify
-        the calls complete without exception — the 'sync' here means the
-        pyttsx3 event loop ran, not that the OS audio driver finished.
+        Uses a fresh TTS instance.
         """
-        if not tts.is_available:
+        from assistive_navigation.audio.tts import TextToSpeech
+        t = TextToSpeech(config)
+        if not t.initialise():
             pytest.skip("TTS not available.")
 
         messages = ["Chair on your left.", "Bottle ahead."]
         print(f"\n  >>> You should hear {len(messages)} messages in sequence.")
         t0 = time.perf_counter()
         for msg in messages:
-            tts.speak_sync(msg)
+            t.speak_sync(msg)
         elapsed = time.perf_counter() - t0
+        t.shutdown()
 
         print(f"  {len(messages)} messages submitted in {elapsed:.3f}s")
         print(f"  (Windows SAPI5 schedules audio asynchronously — "
               f"playback may continue after this returns)")
-        # Just verify no exception was raised and calls completed
         assert elapsed >= 0.0, "speak_sync() should complete without error"
-        # Add a pause to let SAPI5 finish playing before the test exits
-        time.sleep(4.0)
+        time.sleep(2.0)
 
     @requires_audio
-    def test_queue_serialises_messages(self, tts):
+    def test_queue_serialises_messages(self, config):
         """
         PASS CONDITION 8 (queue hardware):
         Queue must speak messages one at a time in FIFO order.
-        No overlap expected.
+        Uses a fresh TTS instance.
         """
+        from assistive_navigation.audio.tts import TextToSpeech
         from assistive_navigation.audio.queue import SimpleAudioQueue
-        if not tts.is_available:
+        t = TextToSpeech(config)
+        if not t.initialise():
             pytest.skip("TTS not available.")
 
-        q = SimpleAudioQueue(tts)
+        q = SimpleAudioQueue(t)
         q.start()
 
         print("\n  >>> You should hear 2 messages in order without overlap.")
         q.put("Message one.")
         q.put("Message two.")
 
-        # Wait for both to be spoken
-        time.sleep(5.0)
-
+        time.sleep(2.5)
+        t.stop()
         q.stop()
+        t.shutdown()
         assert q.is_running is False
 
     @requires_audio
@@ -467,8 +474,9 @@ class TestHardwareSpeech:
 
         print("\n  >>> You should hear 'System shutting down.'")
         q.put("System shutting down.")
-        time.sleep(3.0)
+        time.sleep(1.5)
 
+        t.stop()
         q.stop()
         t.shutdown()
 
