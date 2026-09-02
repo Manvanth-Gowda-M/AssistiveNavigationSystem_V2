@@ -230,21 +230,57 @@ spatial:
 # This prevents single-frame phantom detections from causing false alerts.
 # -----------------------------------------------------------------------------
 temporal:
-  # Number of consecutive frames an object must be detected before
-  # it becomes an alert candidate.
-  # 5 frames at 15 FPS ≈ 0.33 seconds. Rejects most phantom detections.
-  # Justification: human reaction to audio takes ~0.5s anyway.
-  confirmation_frames: 5
+  # How many consecutive PASSING observations before a track is CONFIRMED.
+  # Default: 8 (≈1.0s at 8 FPS measured pipeline speed).
+  # THIS IS A STARTING ESTIMATE — requires Phase 15 empirical tuning.
+  # Trade-off: higher = fewer false alerts but longer confirmation latency.
+  #            lower  = faster alerts but more false positives confirmed.
+  # The previous stub value was 5; raised to 8 based on Phase 4 analysis
+  # showing FP runs of 40-110 frames. Note: even 8 does NOT prevent the
+  # persistent background-element FP (which runs 40+ frames). Phase 15
+  # must address this via min_area_norm tuning.
+  confirmation_frames: 8
 
-  # Fraction of the last N frames in which the class label must be consistent.
-  # 0.8 = 80% of frames must show the same class. Rejects flickering misclassification.
+  # How many consecutive MISSED updates before state is fully EXPIRED.
+  # Default: 3 (≈0.37s at 8 FPS). Handles normal YOLO detection gaps.
+  # THIS IS A STARTING ESTIMATE — requires Phase 15 empirical tuning.
+  # Higher values: more tolerant of detection gaps, but FP may re-confirm more easily.
+  miss_tolerance: 3
+
+  # Class label consistency check.
+  # Fraction of the last class_history_window frames that must show the
+  # same class label for the gate to pass.
+  # Default: 0.8 (80% of the window must agree).
+  # THIS IS A STARTING ESTIMATE.
   class_stability_threshold: 0.8
 
-  # Maximum allowed movement of bbox center between frames (as fraction of
-  # frame width) for the detection to be considered "stable position".
-  # 0.15 = 15% of frame width. Allows normal object motion but rejects
-  # wildly jumping detections.
+  # How many recent class observations to consider for the stability check.
+  # Default: 10 frames.
+  class_history_window: 10
+
+  # Maximum allowed displacement of bbox center between consecutive updates,
+  # expressed as a fraction of the normalised coordinate space [0,1].
+  # Default: 0.15 (≈15% of frame width or height).
+  # A jump larger than this resets the consecutive count.
+  # THIS IS A STARTING ESTIMATE — must be evaluated in Phase 15.
   position_stability_threshold: 0.15
+
+  # Minimum bounding-box area (as a fraction of total frame area) required
+  # for a detection to progress toward confirmation.
+  # Default: 0.02 (2% of frame area).
+  # INTENTIONALLY CONSERVATIVE — this does NOT solve the Phase 4
+  # background-element FP (which has area_norm ~0.08). The Phase 4 FP will
+  # still be confirmed with this default value. This is acknowledged.
+  # Phase 15 must raise this threshold empirically after measuring genuine
+  # small-object area distributions vs false-positive area distributions.
+  # Do NOT raise this to 0.08 until Phase 15 validation is complete.
+  min_area_norm: 0.02
+
+  # Minimum nav_score (from Phase 9) required for an update to count toward
+  # confirmation. Objects scoring below this on a given frame do not progress.
+  # Default: 0.05 — very permissive, almost all detections pass.
+  # THIS IS A STARTING ESTIMATE — must be evaluated in Phase 15.
+  min_nav_score_for_confirmation: 0.05
 
 # -----------------------------------------------------------------------------
 # NAVIGATION PRIORITY ENGINE
