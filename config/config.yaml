@@ -148,34 +148,35 @@ tracking:
 # -----------------------------------------------------------------------------
 depth:
   # Depth model to use.
-  # "depth_anything_v2_small" = Apache-2.0 license, ~95MB, ViT-S backbone.
+  # "depth_anything_v2_small" = Apache-2.0 license, ~99MB, ViT-S backbone.
   # IMPORTANT: Only the Small variant is Apache-2.0.
   # Base/Large/Giant are CC-BY-NC-4.0 (non-commercial only) — do not use them.
   model_name: "depth_anything_v2_small"
   model_path: "models/depth_anything_v2_small.onnx"
 
-  # Input resolution for depth model. Lower = faster but less precise.
-  # 518 is the native input size. 256 is a fast CPU-friendly option.
-  # We benchmark both in Phase 6.
-  input_size: 518
+  # Input resolution for depth model. Must be a multiple of 14.
+  # Benchmarked on i5-12450H (CPU only):
+  #   252 =  ~118ms per inference  (recommended — fast, good quality)
+  #   364 =  ~260ms per inference  (better quality, slower)
+  #   518 =  ~366ms per inference  (native size, best quality, slowest)
+  # Default: 252 — best balance of speed and quality for CPU-only operation.
+  input_size: 252
 
   # Run depth estimation every N detection frames.
-  # Depth is slow (~500-1200ms on CPU) so we don't run it every frame.
-  # Every 5 frames at ~15 FPS detection = ~3 Hz depth updates.
-  # The last valid depth map is used for frames in between.
+  # Depth is slow on CPU so we don't run it every frame.
+  # At detection ~8 FPS and input_size=252 (~118ms):
+  #   interval=5 → depth runs every ~625ms (~1.6 Hz depth updates)
+  # The last valid depth map is cached and reused for frames in between.
   depth_update_interval: 5
 
-  # Number of depth samples to take within each object's bounding box ROI.
-  # We sample a central region (not full bbox) to avoid background noise.
-  # These values define the ROI as a fraction of the bounding box size.
-  roi_center_fraction: 0.5  # Use central 50% of bbox for depth sampling
+  # Central ROI fraction for per-bbox depth sampling (used in Phase 7).
+  # 0.5 = use the central 50% of the bounding box to avoid background leakage.
+  roi_center_fraction: 0.5
 
-  # Minimum number of valid depth samples required to trust the result.
-  # If fewer valid samples exist, proximity is marked as UNKNOWN.
+  # Minimum number of valid depth samples to trust a proximity result.
   min_valid_samples: 10
 
-  # Temporal smoothing window (frames) for per-track depth.
-  # Averages depth over this many frames to reduce flicker.
+  # Temporal smoothing window (frames) for per-track depth (Phase 7).
   smoothing_window: 5
 
 # -----------------------------------------------------------------------------
