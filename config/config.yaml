@@ -392,6 +392,9 @@ debug:
   # Show depth value
   show_depth_value: false  # Clutters display; enable only for depth debugging
 
+  # Debug window title
+  window_title: "Assistive Navigation V2 — Debug"
+
   # Log all detections (including filtered/ignored) to file
   log_all_detections: true
 
@@ -417,3 +420,16 @@ logging:
 
   # Number of backup log files to keep
   backup_count: 3
+
+# -----------------------------------------------------------------------------
+# PIPELINE — Phase 13 integration settings
+# -----------------------------------------------------------------------------
+pipeline:
+  # Whether to open and show the OpenCV debug window.
+  # Set to false for headless/audio-only mode or server environments.
+  show_debug_window: true
+
+  # Maximum consecutive frame exceptions before the pipeline halts.
+  # Prevents silent infinite error loops.
+  # 10 consecutive stage failures = something is fundamentally broken.
+  max_consecutive_errors: 10
