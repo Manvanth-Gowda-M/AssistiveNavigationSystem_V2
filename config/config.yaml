@@ -48,16 +48,26 @@ detection:
   confidence_threshold: 0.35
 
   # Input image size for the detector (square).
-  # 640 = standard YOLO input. Reducing to 320 speeds up inference but
-  # reduces accuracy. Do not change without benchmarking.
+  # DEFAULT: 640 — best detection accuracy, measured latency ~39ms on i5-12450H.
+  # TRADEOFF (Phase 14 measured values — do not change default without testing):
+  #   imgsz=320: ~17ms (+22ms saved) — accuracy noticeably worse for small objects
+  #   imgsz=416: ~22ms (+17ms saved) — moderate accuracy loss
+  #   imgsz=480: ~29ms (+10ms saved) — small accuracy loss
+  #   imgsz=640: ~39ms (DEFAULT)    — best accuracy for navigation objects
+  # Phase 4 found chair(87%), laptop(97%), bottle(97%) detected at 640.
+  # Backpack only detected in multi-object context at 640. Reducing size further
+  # would likely eliminate backpack detection entirely. Keep at 640.
   input_size: 640
 
   # Inference device. "cpu" is the only option on this machine.
   # Set to "cuda" if a CUDA GPU is added later.
   device: "cpu"
 
-  # Number of CPU threads for ONNX Runtime inference.
-  # 0 = use all available. On i5-12450H (8 cores), 4 is a safe start.
+  # Number of CPU threads for YOLO/PyTorch inference.
+  # Measured on i5-12450H: 4 threads = 39.2ms, 6 = 38.8ms, 10 = 38.5ms.
+  # Differences are within measurement noise. 4 is safe and leaves headroom
+  # for depth inference and other pipeline stages.
+  # Do NOT change this without re-running the Phase 14 benchmark.
   num_threads: 4
 
 # -----------------------------------------------------------------------------
@@ -163,11 +173,29 @@ depth:
   input_size: 252
 
   # Run depth estimation every N detection frames.
-  # Depth is slow on CPU so we don't run it every frame.
-  # At detection ~8 FPS and input_size=252 (~118ms):
-  #   interval=5 → depth runs every ~625ms (~1.6 Hz depth updates)
-  # The last valid depth map is cached and reused for frames in between.
+  # DEFAULT: 5. Depth runs every 5th frame; cached map used in between.
+  # TRADEOFF (Phase 14 measured — amortised cost per frame at 252px):
+  #   interval=3 → ~56ms amortised → ~9.7 FPS total  (fresher depth)
+  #   interval=5 → ~34ms amortised → ~12.3 FPS total  (DEFAULT)
+  #   interval=7 → ~24ms amortised → ~14.1 FPS total  (staler depth)
+  #   interval=10→ ~17ms amortised → ~15.6 FPS total  (most stale)
+  # At interval=5 the max depth_age is 4 frames (~0.3s at 12 FPS) which
+  # is acceptable for walking-pace navigation. Increasing the interval
+  # trades depth freshness for higher FPS. Do not change without testing
+  # that the proximity-based alerts remain meaningful.
   depth_update_interval: 5
+
+  # Number of ONNX Runtime CPU threads for depth inference.
+  # OPT-1 (Phase 14): Separate from detection.num_threads so depth can
+  # use all available CPU cores (different framework — no contention).
+  # Measured on i5-12450H:
+  #   0 (all threads) = ~110ms avg  ← fastest
+  #   4 threads       = ~115ms avg
+  #   6 threads       = ~112ms avg
+  # Default: 0 = use all available threads. Provides ~4% improvement
+  # vs the previous setting of 4 (which was inherited from detection).
+  # Functional risk: None — ONNX Runtime and PyTorch use separate pools.
+  num_threads: 0
 
   # Central ROI fraction for per-bbox depth sampling (used in Phase 7).
   # 0.5 = use the central 50% of the bounding box to avoid background leakage.

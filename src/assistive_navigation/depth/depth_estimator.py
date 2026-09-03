@@ -149,9 +149,12 @@ class DepthEstimator:
         self._roi_fraction: float  = float(depth_cfg.get("roi_center_fraction", 0.5))
         self._min_valid_samples: int = int(depth_cfg.get("min_valid_samples", 10))
 
-        # Thread count for ONNX Runtime (reuse detection thread setting)
-        det_cfg = config.get("detection", {})
-        self._num_threads: int = int(det_cfg.get("num_threads", 4))
+        # Thread count for ONNX Runtime depth inference.
+        # OPT-1 (Phase 14): Read from depth.num_threads (default 0 = all available)
+        # rather than detection.num_threads. ONNX Runtime and PyTorch use
+        # separate thread pools — no contention.
+        # Measured: 0 (all) = ~110ms, 4 = ~115ms on i5-12450H.
+        self._num_threads: int = int(depth_cfg.get("num_threads", 0))
 
         # Proximity thresholds (higher depth value = closer)
         self._thresh_very_close: float = float(

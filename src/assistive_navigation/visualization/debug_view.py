@@ -106,6 +106,11 @@ class DebugView:
         if not self._enabled:
             return None
 
+        # OPT-5 (Phase 14): only copy the frame if we will actually draw on it.
+        # Avoids a ~0.9MB allocation every ~80ms when overlay is disabled.
+        if not self._show_boxes and not self._show_fps:
+            return None
+
         overlay = frame.copy()
         h, w = overlay.shape[:2]
 

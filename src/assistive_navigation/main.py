@@ -154,7 +154,10 @@ class AssistiveNavigationPipeline:
         if headless:
             self._debug._show_window = False
 
-        self._perf = PerfMonitor(window=30)
+        # Phase 14: pass performance log path from config
+        dbg_cfg  = config.get("debug", {})
+        perf_log = dbg_cfg.get("perf_log_path", "logs/performance.csv")
+        self._perf = PerfMonitor(window=30, log_path=perf_log)
 
         # Track last alert for display
         self._last_alert_result = None
@@ -505,6 +508,11 @@ class AssistiveNavigationPipeline:
             self._debug.close()
         except Exception as e:
             logger.debug("Debug view close error: %s", e)
+
+        try:
+            self._perf.close()
+        except Exception as e:
+            logger.debug("PerfMonitor close error: %s", e)
 
         logger.info("Pipeline stopped cleanly.")
         print("\nSystem stopped cleanly.")
