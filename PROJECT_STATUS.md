@@ -4,8 +4,47 @@
 
 ## Current Phase
 
-**Phase 4 — Detection Evaluation** ✅ COMPLETE
-**Next Phase: Phase 5 — Object Tracking** ⏳ Awaiting approval
+**Phase 15 — False-Positive Reduction** ✅ COMPLETE
+**Next Phase: Phase 16 — Final Evaluation** ⏳ Awaiting approval
+
+---
+
+### Phase 15 — False-Positive Reduction ✅ COMPLETE (2026-09-03)
+
+Goal: reduce the dominant Phase 4 false positives WITHOUT changing the
+detector, tracker, depth model, TTS, or confidence threshold, and with a
+measurable before/after justification.
+
+- [x] Offline area analysis tool (`tools/phase15_fp_analysis.py`) — reads
+      the existing `phase4_results.csv` READ-ONLY, recomputes `area_norm`
+      from the stored 640×480 bboxes, separates genuine vs false-positive
+      accepted detections, and sweeps candidate `min_area_norm` thresholds.
+- [x] Evidence (pre-temporal, DetectionFilter output only):
+      - GENUINE accepted n=114 → area_norm min 0.1612, median 0.5156
+      - FALSE-POSITIVE accepted n=303 → area_norm min 0.0025, median 0.0645
+- [x] Calibrated `temporal.min_area_norm` 0.02 → **0.15** (single value).
+      - Before (0.02): 72/303 FP suppressed (23.8%), 114/114 genuine kept
+      - After (0.15): 215/303 FP suppressed (**71.0%**), 114/114 genuine kept
+      - +143 additional FP suppressed at **zero genuine-object loss**
+      - 0.20 rejected: genuine retention would drop to 82.5% (20 lost)
+- [x] Dominant FP-1 (empty-scene background `person`): 203 → 22 accepted
+      (181 suppressed, ~89%)
+- [x] Per-class genuine retention @ 0.15: person 30/30, chair 26/26,
+      laptop 29/29, bottle 29/29
+- [x] confidence_threshold UNCHANGED (0.35); confirmation_frames UNCHANGED (8)
+- [x] Detector, tracker, depth (Depth Anything V2 Small), fusion, spatial,
+      priority, temporal logic, TTS, audio queue, alert manager: UNTOUCHED
+- [x] `phase4_results.csv` / `phase4_report.txt`: NOT modified
+- [x] Tests: 38 new Phase 15 tests (`tests/unit/test_phase15.py`,
+      `tests/evaluation/phase15_fp_replay.py`), all pass
+- [x] Full regression: 535 logic + integration tests pass (0 failures)
+
+Documented limitations NOT solved by the area gate (honest):
+  - FP-3: class-confusion mislabels on real objects (table→bottle etc.)
+  - FP-4: doors/stairs — YOLO11n COCO capability gap
+  - ~29% of empty-scene-family FP overlap the genuine area cluster and are
+    intentionally NOT suppressed (raising the threshold would drop genuine
+    objects). `couch_visible` remains NOT TESTED.
 
 ---
 

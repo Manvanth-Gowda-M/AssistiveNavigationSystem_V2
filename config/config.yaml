@@ -264,9 +264,11 @@ temporal:
   # Trade-off: higher = fewer false alerts but longer confirmation latency.
   #            lower  = faster alerts but more false positives confirmed.
   # The previous stub value was 5; raised to 8 based on Phase 4 analysis
-  # showing FP runs of 40-110 frames. Note: even 8 does NOT prevent the
-  # persistent background-element FP (which runs 40+ frames). Phase 15
-  # must address this via min_area_norm tuning.
+  # showing FP runs of 40-110 frames. Phase 15 addressed the persistent
+  # background-element FP via min_area_norm=0.15 (see temporal.min_area_norm),
+  # which suppresses ~89% of the empty-scene 'person' phantoms at the
+  # detection-filter stage. confirmation_frames is left at 8 (unchanged in
+  # Phase 15) and remains complementary to the area gate.
   confirmation_frames: 8
 
   # How many consecutive MISSED updates before state is fully EXPIRED.
@@ -295,14 +297,31 @@ temporal:
 
   # Minimum bounding-box area (as a fraction of total frame area) required
   # for a detection to progress toward confirmation.
-  # Default: 0.02 (2% of frame area).
-  # INTENTIONALLY CONSERVATIVE — this does NOT solve the Phase 4
-  # background-element FP (which has area_norm ~0.08). The Phase 4 FP will
-  # still be confirmed with this default value. This is acknowledged.
-  # Phase 15 must raise this threshold empirically after measuring genuine
-  # small-object area distributions vs false-positive area distributions.
-  # Do NOT raise this to 0.08 until Phase 15 validation is complete.
-  min_area_norm: 0.02
+  # PHASE 15 CALIBRATED VALUE: 0.15 (was 0.02 through Phase 14).
+  #
+  # Evidence (tools/phase15_fp_analysis.py, offline on phase4_results.csv,
+  # area_norm recomputed from stored 640x480 bboxes; measured PRE-temporal,
+  # i.e. DetectionFilter output only, confidence>=0.35 + class list):
+  #   GENUINE accepted detections (n=114): area_norm min=0.1612, median=0.5156
+  #   FALSE-POSITIVE accepted (n=303, declared-empty scenes): min=0.0025,
+  #     median=0.0645
+  # Threshold sweep — RETAINED = area_norm >= threshold:
+  #   0.02 (old): 23.8% FP suppressed, 100% genuine retained
+  #   0.15 (NEW): 71.0% FP suppressed (215/303), 100% genuine retained (0 lost)
+  #   0.20      : 72.3% FP suppressed BUT genuine retention drops to 82.5%
+  #               (20 genuine objects lost) — REJECTED as too aggressive.
+  # 0.15 sits just below the genuine minimum (0.1612), so ALL genuine
+  # person/chair/laptop/bottle detections are retained while ~89% of the
+  # dominant empty-scene background 'person' phantoms (203 -> 22 accepted)
+  # are suppressed.
+  #
+  # WHAT THIS DOES NOT SOLVE (documented, NOT tuned away):
+  #   - FP-3: class-confusion mislabels on real objects (table->bottle etc.)
+  #   - FP-4: doors/stairs (YOLO11n COCO capability gap)
+  #   - The ~11% of empty-scene FP with large area that overlap the genuine
+  #     cluster. Raising the threshold further would drop genuine objects.
+  # This gate is complementary to temporal confirmation (confirmation_frames).
+  min_area_norm: 0.15
 
   # Minimum nav_score (from Phase 9) required for an update to count toward
   # confirmation. Objects scoring below this on a given frame do not progress.

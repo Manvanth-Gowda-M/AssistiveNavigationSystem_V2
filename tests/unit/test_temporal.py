@@ -22,12 +22,17 @@ Phase 10 PASS conditions:
 All logic tests use synthetic data — no camera or model required.
 
 IMPORTANT — threshold disclaimer embedded in tests:
-  All threshold values tested here are STARTING ESTIMATES.
-  Phase 15 must empirically validate and tune:
-    - confirmation_frames (currently 8)
-    - min_area_norm (currently 0.02 — does NOT prevent persistent FPs)
-    - position_stability_threshold (currently 0.15)
-    - miss_tolerance (currently 3)
+  These threshold values were STARTING ESTIMATES through Phase 14.
+  Phase 15 status:
+    - min_area_norm: CALIBRATED to 0.15 (was 0.02). Evidence-based change
+      from the offline Phase 4 area analysis. Suppresses ~71% of the
+      measured empty-scene false positives with zero genuine-object loss.
+      See config.yaml + tests/unit/test_phase15.py.
+    - confirmation_frames (still 8), position_stability_threshold (0.15),
+      miss_tolerance (3): NOT changed in Phase 15; remain starting estimates.
+  Note: several tests below deliberately construct filters with an explicit
+  min_area_norm=0.02 to document the PRE-Phase-15 behaviour. Those are
+  intentional historical-behaviour tests and do not read the live config.
   Do not interpret passing tests as confirmation that the system
   correctly rejects all false positives.
 
@@ -169,7 +174,11 @@ class TestTemporalImports:
     def test_config_values_loaded(self, tcf):
         assert tcf.confirmation_frames == 8
         assert tcf.miss_tolerance      == 3
-        assert tcf.min_area_norm       == pytest.approx(0.02)
+        # Phase 15 calibrated min_area_norm from 0.02 -> 0.15 based on the
+        # offline Phase 4 area-distribution analysis (genuine min area ~0.16,
+        # FP median ~0.06). See temporal.min_area_norm in config.yaml and
+        # tests/unit/test_phase15.py for the evidence.
+        assert tcf.min_area_norm       == pytest.approx(0.15)
 
 
 # ===========================================================================
