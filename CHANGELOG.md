@@ -5,6 +5,36 @@ Format: [Phase] Date — Description
 
 ---
 
+## [Phase 16] 2026-09-04 — Final System Evaluation
+
+- Added `tests/evaluation/phase16_pipeline_eval.py`: Layer 2 synthetic,
+  deterministic pipeline evaluation using the real stage classes with
+  constructed ground truth. 73 checks (48 exact + 7 boundary + 18 heuristic),
+  all pass. Covers direction (≥21 positions + boundaries), proximity bands +
+  monotonicity, temporal confirmation, area gate @0.15, tracking
+  persistence/coasting, alert correctness/triggers/text/selection/dedup/count,
+  pipeline-internal alert latency (excludes TTS/audio), multi-object,
+  partial small-area, and the difficult background-FP profile.
+- Added `tools/phase16_final_eval.py`: Layer 1 detection-level roll-up
+  (reuses `phase4_results.csv` read-only; reproduces the Phase 15 replay
+  exactly) + Layer 3 hardware capture/analysis (copies `performance.csv` to
+  timestamped `phase16_perf_<ts>.csv`; FPS mean/median/min/max; detector/depth/
+  total latency; depth interval; system-wide CPU; process RSS; live FP) +
+  timestamped `phase16_report_<ts>.txt` generator with explicit NOT RUN markers.
+- Added `tests/unit/test_phase16.py`: 35 deterministic tests (Layer 2 behavior,
+  Layer 1 replay reproduction, Layer 3 perf-math on synthetic CSV, and
+  baseline/config guards).
+- Appended a Phase 16 section to `docs/evaluation.md` (Phase 4 section preserved
+  verbatim).
+- Full regression: **570 tests pass** (535 prior + 35 new).
+- No thresholds, detector/depth/tracker/TTS architecture, config, or Phase 4/15
+  baselines were changed. `phase4_results.csv`, `phase4_report.txt`, and
+  `config.yaml` verified byte-identical (SHA256) before/after.
+- Layer 3 hardware evaluation was **NOT RUN** in this pass (no live camera
+  executed); no hardware results were fabricated.
+
+---
+
 ## [Phase 15] 2026-09-03 — False-Positive Reduction
 
 - Added `tools/phase15_fp_analysis.py`: offline, READ-ONLY analysis of the

@@ -689,3 +689,131 @@ accepted, eval_result, rejection_reason, raw_latency_ms
 ---
 
 *Last updated: Phase 4 implementation. Results section pending manual evaluation.*
+
+
+---
+
+# Phase 16 — Final System Evaluation
+
+> The Phase 4 section above is preserved verbatim as the detection-level
+> baseline. Phase 16 does NOT modify Phase 4 or Phase 15 artifacts. Phase 16
+> added evaluation code only; it changed no thresholds and no pipeline module.
+
+## Purpose
+
+Provide a rigorous, honest, end-to-end evaluation of the complete assistive
+navigation system, separating what can be measured deterministically from
+what depends on live hardware.
+
+## Honesty boundaries (read first)
+
+- **No labelled dataset** exists, so this evaluation makes **no** claims of
+  precision, recall, false-negative rate, mAP, accuracy, or generalization.
+- **Layer 2 uses synthetic ground truth (by construction):** it validates
+  pipeline **logic**, not real-world detection quality.
+- Depth is **relative, not metric** — proximity is ordinal.
+- **Single environment / camera / lighting.**
+- **Alert latency is pipeline-internal and EXCLUDES TTS/audio playback time.**
+
+## Three evaluation layers
+
+### Layer 1 — Detection-level (offline, read-only)
+Reuses the existing `data/evaluation/phase4_results.csv` (never modified).
+Reproduces the Phase 15 area-gate replay numbers and reports:
+- Phase 15 before/after: `min_area_norm` 0.02 → 0.15 suppresses
+  72/303 → **215/303** empty-scene-family false positives (71.0%) with
+  **114/114 genuine detections retained (0 lost)**.
+- Genuine-object retention by class @ 0.15: person 30/30, chair 26/26,
+  laptop 29/29, bottle 29/29.
+- Accepted false positives by scene: empty_scene 203, usb_charger 57,
+  pen_or_pencil 42, empty_desk 1.
+- Wrong-class / class-confusion observations (FP-3): 210 — **not** solved by
+  the area gate; documented limitation.
+- Observed no-detection counts for known-object scenarios — reported as
+  **scene-specific observed misses**, explicitly **not** a generalized FN rate.
+
+Tool: `tools/phase16_final_eval.py` (function `layer1_detection`).
+
+### Layer 2 — Synthetic integrated pipeline (deterministic)
+`tests/evaluation/phase16_pipeline_eval.py` drives the **real** stage classes
+(SpatialReasoner, DepthFusion, NavigationPriorityEngine,
+TemporalConfirmationFilter, ObjectTracker, AlertManager) with **constructed**
+inputs, so the correct output is known exactly. Each check is tagged
+`exact` (deterministic correctness), `boundary` (deterministic edge), or
+`heuristic` (threshold-dependent, reported for self-consistency).
+
+Evaluated:
+- **Direction** over ≥21 known positions + explicit boundaries + clamp + NaN.
+- **Proximity** bands over multiple depth values + **monotonicity** + the full
+  `fuse()` path with uniform depth maps.
+- **Temporal confirmation** (phantom never confirms; confirms at exactly
+  `confirmation_frames`; brief gap resumes; excessive gap expires).
+- **Area gate @ 0.15** (genuine min 0.1612 confirms; FP median 0.0645 hard-fails).
+- **Tracking** persistence, single-ID under smooth motion, short-occlusion
+  coasting, empty-input safety.
+- **Alerts**: trigger reasons, alert text formatting, highest-`nav_score`
+  selection, **duplicate suppression within cooldown**, alert count vs
+  expected, and **pipeline-internal alert latency** (frames to `alert_issued`,
+  **excluding** TTS/audio).
+- **Multiple objects**, **partial/small-area** around the 0.15 gate, and the
+  **difficult/background FP profile** (must never confirm and never alert).
+
+### Layer 3 — Hardware / live camera (operator-run; never fabricated)
+`tools/phase16_final_eval.py` captures and analyses real runs:
+- `--capture-perf logs/performance.csv` copies each completed run to a
+  timestamped `data/evaluation/phase16_perf_<ts>.csv` (the live log is
+  overwritten each run, so this preserves it).
+- `--perf-csv` analyses one or more captured runs: FPS mean/median/min/max,
+  detector/depth/total latency, depth inference count + observed interval,
+  **system-wide** CPU (`cpu_percent_system`), and **process** RSS.
+- FPS is compared against the Phase 13–14 baseline range (11.6–12.5 FPS);
+  a single low run is **never** treated as a phase failure.
+- `--live-fp-csv` records a live empty-scene FP run (from `fp_test.py`) as a
+  **measurement** (not pass/fail).
+- Any layer not executed is explicitly marked **NOT RUN**.
+
+## How to run
+
+```
+# Offline layers 1 + 2 + report (no hardware):
+.venv/Scripts/python.exe tools/phase16_final_eval.py
+
+# Layer 2 alone:
+.venv/Scripts/python.exe tests/evaluation/phase16_pipeline_eval.py
+
+# Deterministic tests:
+.venv/Scripts/python.exe -m pytest tests/unit/test_phase16.py -v
+
+# Hardware (operator): run the pipeline ~60s, then capture, repeat >=3x:
+python -m assistive_navigation --headless
+.venv/Scripts/python.exe tools/phase16_final_eval.py --capture-perf logs/performance.csv
+# Live empty-scene FP:
+python tests/evaluation/fp_test.py --duration 60 --no-display
+```
+
+## PASS/FAIL gates
+- All existing logic/integration tests remain passing (570 total with Phase 16).
+- Phase 15 replay numbers reproduce exactly.
+- Direction: 100% exact match away from boundaries.
+- Proximity: 100% band match away from thresholds; monotonicity holds.
+- Temporal/tracking/alert deterministic assertions pass.
+- Static unchanged object produces zero repeat alerts within cooldown.
+- Performance compared to baseline range; single low FPS run never fails the phase.
+- Live FP is a measurement, not pass/fail. Anything not executed is NOT RUN.
+
+## Result files (all timestamped; baselines never overwritten)
+- `data/evaluation/phase16_report_<ts>.txt`
+- `data/evaluation/phase16_pipeline_eval_<ts>.csv`
+- `data/evaluation/phase16_perf_<ts>.csv` (when a live run is captured)
+- `data/evaluation/phase16_live_fp_<ts>.csv` (when a live FP run is captured)
+
+## Limitations carried forward
+Class-confusion mislabels (FP-3); door/stairs COCO gap (FP-4); remaining
+large-area false positives that overlap the genuine cluster; `couch_visible`
+NOT TESTED; single-environment evaluation; relative (not metric) depth;
+Layer 2 correctness is by construction (synthetic); alert latency excludes
+TTS/audio playback.
+
+*Phase 16 added evaluation code and documentation only. No thresholds,
+detector/depth/tracker/TTS architecture, config, or Phase 4/15 baselines
+were changed.*

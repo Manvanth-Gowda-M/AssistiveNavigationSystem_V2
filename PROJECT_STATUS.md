@@ -4,8 +4,45 @@
 
 ## Current Phase
 
-**Phase 15 — False-Positive Reduction** ✅ COMPLETE
-**Next Phase: Phase 16 — Final Evaluation** ⏳ Awaiting approval
+**Phase 16 — Final System Evaluation** ✅ COMPLETE
+**Next Phase: Phase 17 — Documentation** ⏳ Awaiting approval
+
+---
+
+### Phase 16 — Final System Evaluation ✅ COMPLETE (2026-09-04)
+
+Rigorous three-layer evaluation of the complete system. Evaluation code and
+documentation only — no thresholds, pipeline modules, config, or Phase 4/15
+baselines were changed.
+
+- [x] **Layer 1 — Detection-level** (offline, `phase4_results.csv` read-only):
+      reproduces Phase 15 replay exactly (0.02→0.15: 72→**215/303** FP
+      suppressed, **114/114 genuine retained, 0 lost**); reports per-class
+      retention, accepted FP by scene, 210 wrong-class observations (FP-3),
+      and scene-specific no-detection counts (NOT a generalized FN rate).
+- [x] **Layer 2 — Synthetic pipeline** (`tests/evaluation/phase16_pipeline_eval.py`):
+      73 deterministic checks (48 exact + 7 boundary + 18 heuristic), all pass.
+      Direction (≥21 positions + boundaries), proximity bands + monotonicity,
+      temporal confirmation, area gate @0.15, tracking persistence/coasting,
+      alert correctness/triggers/text/selection/dedup/count, pipeline-internal
+      alert latency (excludes TTS/audio), multi-object, partial small-area,
+      and the difficult background-FP profile (never confirms, no alert).
+- [x] **Layer 3 — Hardware/live** (`tools/phase16_final_eval.py`): capture +
+      analysis mechanism (copies `performance.csv` to timestamped
+      `phase16_perf_<ts>.csv`; FPS mean/median/min/max; detector/depth/total
+      latency; depth inference count + interval; system-wide CPU; process RSS;
+      live empty-scene FP). **NOT RUN in this pass** — no hardware executed;
+      no results fabricated.
+- [x] Tests: 35 new (`tests/unit/test_phase16.py`); full regression **570 pass**.
+- [x] Baselines verified unchanged (SHA256 identical before/after):
+      `phase4_results.csv`, `phase4_report.txt`, `config.yaml`.
+- [x] `min_area_norm=0.15`, `confidence_threshold=0.35`, `confirmation_frames=8`
+      all unchanged.
+
+Documented limitations carried forward: FP-3 mislabels, door/stairs COCO gap,
+remaining large-area FP overlap, `couch_visible` NOT TESTED, single environment,
+relative depth, synthetic ground truth is by construction, alert latency
+excludes TTS.
 
 ---
 
