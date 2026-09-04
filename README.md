@@ -5,9 +5,15 @@ standard webcam to detect nearby objects and speak short navigation alerts
 (e.g. *"person ahead, close"*). It runs fully offline after an initial
 model download. No custom hardware, no cloud, no GPU required.
 
-> **Status:** Phases 0–16 complete. Phase 17 (this documentation pass) in
-> progress. Phase 18 (final demonstration) pending. See
+> **Status:** Phases 0–17 complete. Phase 18 (final demonstration & validation)
+> complete for all headless items; live webcam/audio/performance items are
+> **[NOT RUN]** pending physical execution (see
+> [`demo/demo_script.md`](demo/demo_script.md)). See
 > [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
+>
+> **Final report:** [`docs/final_report.md`](docs/final_report.md) ·
+> **Presentation:** [`docs/presentation.md`](docs/presentation.md) ·
+> **Demo evidence:** [`demo/`](demo/)
 
 ---
 
@@ -152,6 +158,9 @@ Reproducing results: [`docs/reproducibility.md`](docs/reproducibility.md).
 | [`docs/evaluation.md`](docs/evaluation.md) | Phase 4 physical eval + Phase 16 three-layer methodology (authoritative) |
 | [`docs/troubleshooting.md`](docs/troubleshooting.md) | Troubleshooting table |
 | [`docs/licenses.md`](docs/licenses.md) | Full license inventory |
+| [`docs/final_report.md`](docs/final_report.md) | Phase 18 final report (all phases, labelled evidence) |
+| [`docs/presentation.md`](docs/presentation.md) | ~14-slide presentation outline |
+| [`demo/`](demo/) | Phase 18 evidence package + operator demo runbook |
 
 ---
 
@@ -176,8 +185,8 @@ Reproducing results: [`docs/reproducibility.md`](docs/reproducibility.md).
 | 14 | Performance Optimization & Measurement | ✅ Complete |
 | 15 | False-Positive Reduction | ✅ Complete |
 | 16 | Final System Evaluation (3-layer) | ✅ Complete |
-| 17 | Documentation & Reproducibility | 🔄 In Progress |
-| 18 | Final Demonstration | ⏳ Pending |
+| 17 | Documentation & Reproducibility | ✅ Complete |
+| 18 | Final Demonstration & Validation | ✅ Complete (headless); live items [NOT RUN] |
 
 ---
 

@@ -4,8 +4,35 @@
 
 ## Current Phase
 
-**Phase 17 — Documentation & Reproducibility** ✅ COMPLETE
-**Next Phase: Phase 18 — Final Demonstration** ⏳ Awaiting approval
+**Phase 18 — Final Demonstration & Validation** ✅ COMPLETE (headless items)
+**Live webcam/audio/performance items: [NOT RUN]** (operator-executed)
+**Project phases 0–18 complete.**
+
+---
+
+### Phase 18 — Final Demonstration & Validation ✅ COMPLETE (2026-09-04)
+
+Validation, evidence, and presentation preparation. No pipeline source, config,
+tests, evaluation harnesses, or Phase 4/15/16 artifacts were modified.
+
+- [x] Software verification: full non-hardware regression **570 passed, 0 failed**;
+      protected files (config.yaml, phase4_results.csv, phase4_report.txt) and
+      src/tests/tools/config/data-evaluation git trees verified byte-identical
+      to the Phase 17 baseline. [MEASURED]
+- [x] `demo/` evidence package: `test_output.txt`, `git_status.txt`,
+      `git_log.txt`, `protected_file_hashes.txt`, `project_tree.txt`,
+      `README.md` (evidence index), `demo_script.md` (operator runbook).
+- [x] `docs/final_report.md` — full report, every quantitative claim labelled;
+      no precision/recall/mAP/accuracy/generalization claims.
+- [x] `docs/presentation.md` — ~14-slide outline; only supported results.
+- [x] README / PROJECT_STATUS / CHANGELOG updated.
+- [ ] **Live webcam demonstration (scenarios A–K): [NOT RUN]** — operator.
+- [ ] **Live audio verification: [NOT RUN]** — operator.
+- [ ] **Live empty-scene FP measurement: [NOT RUN]** — operator.
+- [ ] **Live performance runs: [NOT RUN]** — operator.
+
+Live items must be executed physically per `demo/demo_script.md`; results were
+NOT fabricated.
 
 ---
 

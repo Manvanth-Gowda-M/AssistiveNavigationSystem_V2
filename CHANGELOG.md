@@ -5,6 +5,30 @@ Format: [Phase] Date — Description
 
 ---
 
+## [Phase 18] 2026-09-04 — Final Demonstration & Validation
+
+Validation, evidence, and presentation only. No pipeline source,
+`config/config.yaml`, tests, evaluation harnesses, or Phase 4/15/16 artifacts
+were modified (verified byte-identical via SHA256 + git tree hashes).
+
+- Software verification: full non-hardware regression **570 passed, 0 failed**;
+  protected paths byte-identical to the Phase 17 baseline.
+- Added `demo/` evidence package: `test_output.txt`, `git_status.txt`,
+  `git_log.txt`, `protected_file_hashes.txt`, `project_tree.txt`, `README.md`
+  (evidence index), and `demo_script.md` (operator runbook for the live
+  demonstration).
+- Added `docs/final_report.md` (problem → future work; every quantitative claim
+  labelled [MEASURED]/[SYNTHETIC-DETERMINISTIC]/[OPERATOR-LIVE]/[NOT RUN]/
+  [DESIGN TARGET]/[UNVALIDATED ASSUMPTION]; no precision/recall/mAP/accuracy/
+  generalization claims).
+- Added `docs/presentation.md` (~14-slide outline; only supported results).
+- Updated `README.md`, `PROJECT_STATUS.md` for Phase 18 completion.
+- Live webcam demonstration, live audio verification, live empty-scene FP
+  measurement, and live performance runs are marked **[NOT RUN]** — they
+  require physical execution and were NOT fabricated.
+
+---
+
 ## [Phase 17] 2026-09-04 — Documentation & Reproducibility
 
 Documentation and dependency-manifest correction only. No pipeline source,
