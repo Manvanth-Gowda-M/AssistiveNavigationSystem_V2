@@ -45,21 +45,32 @@ sympy==1.14.0                # BSD
 comtypes==1.4.16             # MIT (Windows COM interface)
 
 # =============================================================================
-# Packages added in later phases (NOT YET INSTALLED):
+# Detection + tracking stack (Phase 3+) — INSTALLED and verified.
+# These are the exact versions present in the tested .venv (pip freeze).
+# Do NOT upgrade/downgrade without re-running the full test + Phase 4/15/16
+# evaluation. Ultralytics pulls in torch + torchvision automatically.
 # =============================================================================
-# Phase 3+:
-#   ultralytics>=8.3.0       # AGPL-3.0 — YOLO11 detection + ByteTrack
-#   scipy>=1.11.0            # BSD-3-Clause — statistical operations
-#
-# Phase 6+:
-#   # Depth Anything V2 Small ONNX model downloaded via scripts/download_models.py
-#   # Model license: Apache-2.0 (Small variant ONLY)
-#
-# Phase 11 (optional TTS upgrade):
-#   piper-tts-plus>=1.3.0    # MIT — neural TTS (better voice quality)
-#
-# Dev / testing only:
-#   pytest>=7.4.0            # MIT
+ultralytics==8.4.137         # AGPL-3.0 — YOLO11 detection + ByteTrack tracking
+torch==2.13.0                # BSD-3-Clause — PyTorch (Ultralytics backend, CPU)
+torchvision==0.28.0          # BSD-3-Clause — vision ops used by Ultralytics
+
+# =============================================================================
+# Depth model (Phase 6+):
+#   Depth Anything V2 Small float32 ONNX (models/depth_anything_v2_small.onnx)
+#   is downloaded via scripts/download_models.py and run through onnxruntime
+#   (already listed above). Model license: Apache-2.0 (Small variant ONLY).
+#   No extra Python package is required for depth inference.
+#   NOTE: the INT8 depth ONNX variant was evaluated and REJECTED in Phase 6
+#   (onnxruntime 1.23.2 does not support its ConvInteger operator). The
+#   float32 model is used instead. See docs/models.md.
+# =============================================================================
+
+# =============================================================================
+# NOT INSTALLED (intentionally) — listed for transparency only:
+#   scipy            — was considered for statistical ops but is NOT used and
+#                      NOT installed. Do not add it unless a feature needs it.
+#   piper-tts-plus   — optional neural-TTS upgrade considered in Phase 11 but
+#                      NOT adopted. The system uses pyttsx3 + Windows SAPI5.
 # =============================================================================
 
 # --- Testing (added after pytest installed in venv) ---

@@ -5,6 +5,42 @@ Format: [Phase] Date — Description
 
 ---
 
+## [Phase 17] 2026-09-04 — Documentation & Reproducibility
+
+Documentation and dependency-manifest correction only. No pipeline source,
+`config/config.yaml`, tests, evaluation harnesses, or Phase 4/15/16 artifacts
+were modified.
+
+- Corrected `requirements.txt` to match the verified installed environment:
+  added `ultralytics==8.4.137`, `torch==2.13.0`, `torchvision==0.28.0` (exact
+  installed versions; no upgrades/downgrades). Documented that `scipy` and
+  `piper-tts-plus` are NOT installed, and the INT8 depth-model rejection.
+- Rewrote `README.md` for the current state (Phase 16 complete): corrected the
+  phase table and technology stack (YOLO11n via Ultralytics/PyTorch `.pt`;
+  Depth Anything V2 Small via ONNX Runtime), added the five-label evidence key,
+  citation/attribution, limitations, and future work; preserved the safety
+  disclaimer and privacy/local-processing sections.
+- Filled five documentation stubs: `docs/architecture.md` (architecture +
+  data flow + per-stage explanations, items 4–18), `docs/installation.md`
+  (clean-machine setup, requirements, model acquisition, configuration),
+  `docs/models.md` (model sources/sizes/licenses + INT8-rejection rationale),
+  `docs/testing.md` (layout, markers, counts), `docs/troubleshooting.md`.
+- Added `docs/usage.md` (run/debug/headless/tests/evaluation/hardware) and
+  `docs/reproducibility.md` (reproduce Phase 4/15/16 + reproducibility,
+  clean-machine, final-evaluation, and final-demo checklists).
+- Updated `docs/licenses.md`: added torch + torchvision (BSD-3-Clause) with
+  installed versions; corrected scipy and piper-tts-plus to NOT-installed;
+  refreshed the "Last updated" line.
+- `docs/evaluation.md` preserved verbatim (Phase 4 + Phase 16 content).
+- All quantitative claims labelled [MEASURED] / [SYNTHETIC-DETERMINISTIC] /
+  [OPERATOR-LIVE / NOT RUN] / [DESIGN TARGET] / [UNVALIDATED ASSUMPTION].
+  No precision/recall/mAP/accuracy/generalization claimed.
+- Full non-hardware regression: **570 tests pass**. Protected baselines
+  (`config.yaml`, `phase4_results.csv`, `phase4_report.txt`) verified
+  byte-identical (SHA256) before and after.
+
+---
+
 ## [Phase 16] 2026-09-04 — Final System Evaluation
 
 - Added `tests/evaluation/phase16_pipeline_eval.py`: Layer 2 synthetic,

@@ -4,8 +4,40 @@
 
 ## Current Phase
 
-**Phase 16 — Final System Evaluation** ✅ COMPLETE
-**Next Phase: Phase 17 — Documentation** ⏳ Awaiting approval
+**Phase 17 — Documentation & Reproducibility** ✅ COMPLETE
+**Next Phase: Phase 18 — Final Demonstration** ⏳ Awaiting approval
+
+---
+
+### Phase 17 — Documentation & Reproducibility ✅ COMPLETE (2026-09-04)
+
+Documentation and manifest correction only. No pipeline source, config, tests,
+evaluation harnesses, or Phase 4/15/16 artifacts were modified.
+
+- [x] `requirements.txt` corrected to match the verified installed `.venv`:
+      added `ultralytics==8.4.137`, `torch==2.13.0`, `torchvision==0.28.0`
+      (exact installed versions — no upgrades/downgrades); documented that
+      scipy and piper-tts-plus are NOT installed; documented the INT8 depth
+      rejection.
+- [x] `README.md` rewritten for the current state: Phase 16 complete, corrected
+      phase table and technology stack (YOLO11n via Ultralytics/PyTorch `.pt`;
+      depth via ONNX Runtime), five-label evidence key, preserved safety
+      disclaimer and privacy sections, added citation/attribution, limitations,
+      and future work.
+- [x] Filled the five documentation stubs: `docs/architecture.md`,
+      `docs/installation.md`, `docs/models.md`, `docs/testing.md`,
+      `docs/troubleshooting.md`.
+- [x] Created `docs/usage.md` and `docs/reproducibility.md` (with the
+      reproducibility, clean-machine, final-evaluation, and final-demo checklists).
+- [x] `docs/licenses.md`: added torch + torchvision (BSD-3-Clause) with
+      installed versions; corrected scipy and piper-tts-plus to NOT-installed;
+      updated the "Last updated" line.
+- [x] `docs/evaluation.md` left unchanged (Phase 4 + Phase 16 content preserved
+      verbatim; referenced from the new docs).
+- [x] Full non-hardware regression re-verified: 570 pass. Protected files
+      (config.yaml, phase4_results.csv, phase4_report.txt) verified byte-identical.
+- [x] All quantitative claims tagged with the five evidence labels; no
+      precision/recall/mAP/accuracy/generalization claimed.
 
 ---
 

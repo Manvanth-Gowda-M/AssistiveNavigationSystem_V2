@@ -3,7 +3,7 @@
 All third-party software and models used in this project are listed here
 with their licenses, sources, and implications.
 
-Last updated: Phase 1
+Last updated: Phase 17 (verified against the installed `.venv` via `pip freeze`).
 
 ---
 
@@ -23,7 +23,7 @@ Last updated: Phase 1
 | OpenCV (opencv-python) | ≥4.8.0 | Apache-2.0 | github.com/opencv/opencv | ✅ Yes | |
 | ONNX Runtime | ≥1.16.0 | MIT | github.com/microsoft/onnxruntime | ✅ Yes | |
 | NumPy | ≥1.24.0 | BSD-3-Clause | numpy.org | ✅ Yes | |
-| SciPy | ≥1.11.0 | BSD-3-Clause | scipy.org | ✅ Yes | |
+| ~~SciPy~~ | — | BSD-3-Clause | scipy.org | ✅ Yes | **NOT installed / NOT used.** Considered earlier but never adopted; listed for transparency only. |
 | PyYAML | ≥6.0 | MIT | pyyaml.org | ✅ Yes | |
 | psutil | ≥5.9.0 | BSD-3-Clause | github.com/giampaolo/psutil | ✅ Yes | |
 | pyttsx3 | ≥2.90 | MIT | github.com/nateshmbhat/pyttsx3 | ✅ Yes | |
@@ -35,7 +35,9 @@ Last updated: Phase 1
 
 | Component | License | Source | Commercial Use | Critical Notes |
 |---|---|---|---|---|
-| **Ultralytics (YOLO11, ByteTrack, BoT-SORT)** | **AGPL-3.0** | github.com/ultralytics/ultralytics | ⚠️ **Conditional** | Free for open-source/research. If this project is ever distributed as a closed commercial product, an Ultralytics Enterprise license is required. Current use (open-source research prototype) is fully compliant. |
+| **Ultralytics (YOLO11, ByteTrack, BoT-SORT)** | **AGPL-3.0** | github.com/ultralytics/ultralytics | ⚠️ **Conditional** | Free for open-source/research. If this project is ever distributed as a closed commercial product, an Ultralytics Enterprise license is required. Current use (open-source research prototype) is fully compliant. **Installed version: 8.4.137.** |
+| **PyTorch (torch)** | **BSD-3-Clause** | github.com/pytorch/pytorch | ✅ Yes | Backend used by Ultralytics for YOLO11n inference (CPU). Pulled in automatically as an Ultralytics dependency. **Installed version: 2.13.0.** |
+| **torchvision** | **BSD-3-Clause** | github.com/pytorch/vision | ✅ Yes | Vision ops used by Ultralytics. Pulled in automatically. **Installed version: 0.28.0.** |
 | **Depth Anything V2 Small** | **Apache-2.0** | github.com/DepthAnything/Depth-Anything-V2 | ✅ Yes | **Small variant ONLY.** Base/Large/Giant use CC-BY-NC-4.0 (non-commercial). We use Small exclusively. |
 | **Depth Anything V2 Base/Large/Giant** | **CC-BY-NC-4.0** | Same repo | ❌ Non-commercial only | **DO NOT USE.** NC restriction. |
 | YOLO11n pretrained weights | AGPL-3.0 | Ultralytics HuggingFace | ⚠️ Same as Ultralytics | Weights inherit the framework license. |
@@ -48,7 +50,7 @@ Last updated: Phase 1
 |---|---|---|
 | Windows SAPI5 TTS (David, Zira voices) | Microsoft Windows License | Built into Windows 11 — already installed, no separate download |
 | pyttsx3 | MIT | Python wrapper for SAPI5 |
-| piper-tts-plus (Phase 11 upgrade) | MIT | Verified at pypi.org/project/piper-tts-plus |
+| ~~piper-tts-plus~~ (considered, NOT adopted) | MIT | Considered as a Phase 11 neural-TTS upgrade but **NOT installed / NOT used**. The system uses pyttsx3 + Windows SAPI5. |
 
 ---
 
