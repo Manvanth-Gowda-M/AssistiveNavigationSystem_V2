@@ -26,36 +26,37 @@ export class GuidanceSpeechEngine {
         const { action, urgency, primaryObstacle, reason } = decision;
         const phrases = SpeechConfig.phrases;
 
-        if (action === "STOP") {
-            if (reason === "obstacle_very_close") return phrases.STOP_VERY_CLOSE;
-            if (reason === "rapid_approach") return phrases.STOP_RAPID_APPROACH;
-            if (reason === "both_flanks_blocked") return phrases.STOP_BOTH_BLOCKED;
-            return phrases.STOP;
-        }
+        const rawLabel = primaryObstacle ? primaryObstacle.label : "obstacle";
+        const label = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1);
 
-        const label = primaryObstacle ? primaryObstacle.label : "obstacle";
+        if (action === "STOP") {
+            if (reason === "obstacle_very_close") return `Stop. ${label} directly ahead.`;
+            if (reason === "rapid_approach") return `Stop. ${label} approaching quickly.`;
+            if (reason === "both_flanks_blocked") return phrases.STOP_BOTH_BLOCKED;
+            return `Stop. ${label} ahead.`;
+        }
 
         if (action === "MOVE_RIGHT") {
-            return (label === "person") ? "Person ahead. Move right." : "Obstacle ahead. Move right.";
+            return `${label} ahead. Move right.`;
         }
         if (action === "MOVE_SLIGHTLY_RIGHT") {
-            return (label === "person") ? "Person ahead. Move slightly right." : "Obstacle ahead. Move slightly right.";
+            return `${label} ahead. Move slightly right.`;
         }
         if (action === "MOVE_LEFT") {
-            return (label === "person") ? "Person ahead. Move left." : "Obstacle ahead. Move left.";
+            return `${label} ahead. Move left.`;
         }
         if (action === "MOVE_SLIGHTLY_LEFT") {
-            return (label === "person") ? "Person ahead. Move slightly left." : "Obstacle ahead. Move slightly left.";
+            return `${label} ahead. Move slightly left.`;
         }
         if (action === "CAUTION") {
-            return phrases.CAUTION_AHEAD;
+            return `${label} ahead. Caution.`;
         }
         if (action === "CONTINUE") {
             // Silence is golden: do not repeatedly speak "Path clear" unless recovering
             return (reason === "recovered_clear") ? phrases.PATH_CLEAR : "";
         }
 
-        return phrases.OBSTACLE_AHEAD;
+        return `${label} ahead.`;
     }
 
     /**

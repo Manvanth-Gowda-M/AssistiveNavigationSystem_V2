@@ -28,10 +28,18 @@ export class VisionDetector {
         console.log("[VisionDetector] Initializing Edge Vision Model...");
 
         try {
-            // Check window.tasksVision (standard MediaPipe bundle export) or global
-            const visionTasks = window.tasksVision || window;
-            const FilesetResolver = visionTasks.FilesetResolver || window.FilesetResolver;
-            const ObjectDetector = visionTasks.ObjectDetector || window.ObjectDetector;
+            // Import MediaPipe Tasks Vision directly as an ES Module
+            let FilesetResolver, ObjectDetector;
+            try {
+                const mp = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14");
+                FilesetResolver = mp.FilesetResolver;
+                ObjectDetector = mp.ObjectDetector;
+            } catch (importErr) {
+                console.warn("[VisionDetector] Dynamic import fallback:", importErr);
+                const visionTasks = window.tasksVision || window;
+                FilesetResolver = visionTasks.FilesetResolver || window.FilesetResolver;
+                ObjectDetector = visionTasks.ObjectDetector || window.ObjectDetector;
+            }
 
             if (FilesetResolver && ObjectDetector) {
                 const vision = await FilesetResolver.forVisionTasks(VisionConfig.wasmLoaderPath);
@@ -39,11 +47,11 @@ export class VisionDetector {
                     this.detector = await ObjectDetector.createFromOptions(vision, {
                         baseOptions: {
                             modelAssetPath: VisionConfig.modelAssetPath,
-                            delegate: "GPU" // Hardware GPU / WebGL acceleration
+                            delegate: "GPU" // Hardware WebGL / WebGPU acceleration
                         },
-                        runningMode: "IMAGE",
+                        runningMode: "VIDEO",
                         scoreThreshold: VisionConfig.highRiskConfidence,
-                        maxResults: 12
+                        maxResults: 15
                     });
                     this.activeBackend = "MEDIAPIPE_GPU";
                 } catch (gpuErr) {
@@ -53,9 +61,9 @@ export class VisionDetector {
                             modelAssetPath: VisionConfig.modelAssetPath,
                             delegate: "CPU"
                         },
-                        runningMode: "IMAGE",
+                        runningMode: "VIDEO",
                         scoreThreshold: VisionConfig.highRiskConfidence,
-                        maxResults: 12
+                        maxResults: 15
                     });
                     this.activeBackend = "MEDIAPIPE_CPU";
                 }
@@ -96,7 +104,15 @@ export class VisionDetector {
 
         try {
             if (this.detector && this.activeBackend.startsWith("MEDIAPIPE")) {
-                const results = this.detector.detect(sourceElement);
+                let results = null;
+                const isVideo = sourceElement.tagName === "VIDEO";
+                if (isVideo && typeof this.detector.detectForVideo === "function") {
+                    const videoTime = Math.round(performance.now());
+                    results = this.detector.detectForVideo(sourceElement, videoTime);
+                } else if (typeof this.detector.detect === "function") {
+                    results = this.detector.detect(sourceElement);
+                }
+                
                 if (results && results.detections) {
                     const srcWidth = sourceElement.videoWidth || sourceElement.width || 640;
                     const srcHeight = sourceElement.videoHeight || sourceElement.height || 480;
