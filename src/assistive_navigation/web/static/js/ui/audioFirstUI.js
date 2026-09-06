@@ -28,7 +28,15 @@ export class AudioFirstUIManager {
         this.actionHeadline.textContent = actionText;
 
         if (this.reasonSubline) {
-            this.reasonSubline.textContent = `Urgency: ${decision.urgency} | ${decision.reason.replace(/_/g, " ")}`;
+            if (decision.primaryObstacle) {
+                const obsLabel = decision.primaryObstacle.label.charAt(0).toUpperCase() + decision.primaryObstacle.label.slice(1);
+                const dist = decision.primaryObstacle.estimatedDistance || "AHEAD";
+                this.reasonSubline.textContent = `${obsLabel} (${dist}) • Risk ${decision.primaryObstacle.estimatedRisk || 0}% • ${decision.urgency}`;
+            } else if (decision.action === "CONTINUE") {
+                this.reasonSubline.textContent = "Path open ahead • No obstacles detected";
+            } else {
+                this.reasonSubline.textContent = `Urgency: ${decision.urgency} | ${decision.reason.replace(/_/g, " ")}`;
+            }
         }
 
         // Card styling based on action

@@ -27,11 +27,13 @@ export const VisionConfig = {
     // High Priority Semantic Categories
     highPriorityLabels: new Set([
         "person", "bicycle", "car", "motorcycle", "bus", "truck",
-        "stairs", "door", "stop sign", "traffic light", "fire hydrant"
+        "stairs", "door", "stop sign", "traffic light", "fire hydrant",
+        "laptop", "tv", "cell phone"
     ]),
 
     mediumPriorityLabels: new Set([
         "chair", "couch", "potted plant", "bed", "dining table",
-        "toilet", "suitcase", "backpack", "umbrella", "bench"
+        "toilet", "suitcase", "backpack", "umbrella", "bench",
+        "keyboard", "mouse", "bottle", "cup", "book"
     ])
 };

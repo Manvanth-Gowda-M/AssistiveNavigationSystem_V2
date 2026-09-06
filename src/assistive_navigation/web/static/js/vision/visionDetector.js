@@ -9,7 +9,8 @@ import { NormalizedDetection } from "./detectionTypes.js";
 
 export class VisionDetector {
     constructor() {
-        this.detector = null;
+        this.cocoModel = null;
+        this.mpDetector = null;
         this.isLoaded = false;
         this.isLoading = false;
         this.isBusy = false;
@@ -18,24 +19,38 @@ export class VisionDetector {
     }
 
     /**
-     * Initializes the detector asynchronously.
+     * Initializes the detector asynchronously with multi-engine failover.
      */
     async initialize() {
         if (this.isLoaded) return true;
         if (this.isLoading) return false;
 
         this.isLoading = true;
-        console.log("[VisionDetector] Initializing Edge Vision Model...");
+        console.log("[VisionDetector] Initializing Edge Vision Engines...");
 
+        // 1. First Priority: TensorFlow.js COCO-SSD (Most stable on mobile browsers)
+        if (typeof window !== "undefined" && window.cocoSsd) {
+            try {
+                console.log("[VisionDetector] Loading TensorFlow.js COCO-SSD model...");
+                this.cocoModel = await window.cocoSsd.load({ base: "lite_mobilenet_v2" });
+                this.activeBackend = "TFJS_COCO_SSD";
+                this.isLoaded = true;
+                this.isLoading = false;
+                console.log("[VisionDetector] TFJS COCO-SSD Engine Ready.");
+                return true;
+            } catch (tfErr) {
+                console.warn("[VisionDetector] COCO-SSD load failed, falling back to MediaPipe:", tfErr);
+            }
+        }
+
+        // 2. Second Priority: MediaPipe Tasks Vision
         try {
-            // Import MediaPipe Tasks Vision directly as an ES Module
             let FilesetResolver, ObjectDetector;
             try {
                 const mp = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14");
                 FilesetResolver = mp.FilesetResolver;
                 ObjectDetector = mp.ObjectDetector;
             } catch (importErr) {
-                console.warn("[VisionDetector] Dynamic import fallback:", importErr);
                 const visionTasks = window.tasksVision || window;
                 FilesetResolver = visionTasks.FilesetResolver || window.FilesetResolver;
                 ObjectDetector = visionTasks.ObjectDetector || window.ObjectDetector;
@@ -44,24 +59,23 @@ export class VisionDetector {
             if (FilesetResolver && ObjectDetector) {
                 const vision = await FilesetResolver.forVisionTasks(VisionConfig.wasmLoaderPath);
                 try {
-                    this.detector = await ObjectDetector.createFromOptions(vision, {
+                    this.mpDetector = await ObjectDetector.createFromOptions(vision, {
                         baseOptions: {
                             modelAssetPath: VisionConfig.modelAssetPath,
-                            delegate: "GPU" // Hardware WebGL / WebGPU acceleration
+                            delegate: "GPU"
                         },
-                        runningMode: "VIDEO",
+                        runningMode: "IMAGE",
                         scoreThreshold: VisionConfig.highRiskConfidence,
                         maxResults: 15
                     });
                     this.activeBackend = "MEDIAPIPE_GPU";
                 } catch (gpuErr) {
-                    console.warn("[VisionDetector] GPU delegate fallback to CPU/WASM:", gpuErr);
-                    this.detector = await ObjectDetector.createFromOptions(vision, {
+                    this.mpDetector = await ObjectDetector.createFromOptions(vision, {
                         baseOptions: {
                             modelAssetPath: VisionConfig.modelAssetPath,
                             delegate: "CPU"
                         },
-                        runningMode: "VIDEO",
+                        runningMode: "IMAGE",
                         scoreThreshold: VisionConfig.highRiskConfidence,
                         maxResults: 15
                     });
@@ -77,17 +91,16 @@ export class VisionDetector {
             console.warn("[VisionDetector] MediaPipe load error:", loadErr);
         }
 
-        // Fallback: If MediaPipe script isn't dynamically loaded or offline fallback is active
-        this.activeBackend = "EMULATED_EDGE_FALLBACK";
+        // Fallback: If network is offline or libraries fail to load
+        this.activeBackend = "STANDBY_PERCEPTION";
         this.isLoaded = true;
         this.isLoading = false;
-        console.log("[VisionDetector] Active with Lightweight Perception Pipeline.");
+        console.log("[VisionDetector] Active with Standby Perception Pipeline.");
         return true;
     }
 
     /**
      * Run inference on an HTML video or canvas element.
-     * Skips inference if previous frame is still busy to guarantee 0 latency buildup.
      */
     async detectFrame(sourceElement, timestamp = Date.now()) {
         if (!this.isLoaded || this.isBusy || !sourceElement) {
@@ -103,28 +116,49 @@ export class VisionDetector {
         const normalizedDetections = [];
 
         try {
-            if (this.detector && this.activeBackend.startsWith("MEDIAPIPE")) {
-                let results = null;
-                const isVideo = sourceElement.tagName === "VIDEO";
-                if (isVideo && typeof this.detector.detectForVideo === "function") {
-                    const videoTime = Math.round(performance.now());
-                    results = this.detector.detectForVideo(sourceElement, videoTime);
-                } else if (typeof this.detector.detect === "function") {
-                    results = this.detector.detect(sourceElement);
-                }
-                
-                if (results && results.detections) {
-                    const srcWidth = sourceElement.videoWidth || sourceElement.width || 640;
-                    const srcHeight = sourceElement.videoHeight || sourceElement.height || 480;
+            const srcWidth = sourceElement.videoWidth || sourceElement.width || 640;
+            const srcHeight = sourceElement.videoHeight || sourceElement.height || 480;
 
+            // 1. Run COCO-SSD detection
+            if (this.cocoModel) {
+                const predictions = await this.cocoModel.detect(sourceElement, 15, VisionConfig.highRiskConfidence);
+                if (predictions && predictions.length > 0) {
+                    for (const pred of predictions) {
+                        const [x, y, w, h] = pred.bbox;
+                        const conf = pred.score;
+                        const label = pred.class.toLowerCase();
+
+                        if (conf >= VisionConfig.minDetectionConfidence || VisionConfig.highPriorityLabels.has(label)) {
+                            const x1 = Math.max(0, Math.min(1, x / srcWidth));
+                            const y1 = Math.max(0, Math.min(1, y / srcHeight));
+                            const x2 = Math.max(0, Math.min(1, (x + w) / srcWidth));
+                            const y2 = Math.max(0, Math.min(1, (y + h) / srcHeight));
+
+                            normalizedDetections.push(new NormalizedDetection({
+                                label,
+                                confidence: conf,
+                                boundingBox: [x1, y1, x2, y2],
+                                timestamp
+                            }));
+                        }
+                    }
+                }
+            } 
+            // 2. Run MediaPipe detection
+            else if (this.mpDetector) {
+                let results = null;
+                if (typeof this.mpDetector.detect === "function") {
+                    results = this.mpDetector.detect(sourceElement);
+                }
+
+                if (results && results.detections) {
                     for (const det of results.detections) {
                         const cat = det.categories[0];
                         const conf = cat ? cat.score : 0.0;
-                        const label = cat ? cat.categoryName : "obstacle";
+                        const label = cat ? cat.categoryName.toLowerCase() : "obstacle";
                         const box = det.boundingBox;
 
-                        if (box && conf >= VisionConfig.minDetectionConfidence) {
-                            // Normalize bounding box coordinates to 0.0 - 1.0
+                        if (box && (conf >= VisionConfig.minDetectionConfidence || VisionConfig.highPriorityLabels.has(label))) {
                             const x1 = Math.max(0, Math.min(1, box.originX / srcWidth));
                             const y1 = Math.max(0, Math.min(1, box.originY / srcHeight));
                             const x2 = Math.max(0, Math.min(1, (box.originX + box.width) / srcWidth));
@@ -140,6 +174,7 @@ export class VisionDetector {
                     }
                 }
             }
+
             this.lastDetections = normalizedDetections;
         } catch (err) {
             console.error("[VisionDetector] Detection error:", err);
