@@ -130,11 +130,24 @@ torch/torchvision). Dependency manifest reconciled to the installed versions
 - **Software verification: 570 non-hardware tests pass, 0 failed** (38
   `requires_camera` hardware tests deselected). Protected files verified
   byte-identical to the Phase 17 baseline. [MEASURED — see `../demo/`]
-- **Live webcam demonstration** (scenarios A–K): **[NOT RUN]** — operator
-  runbook provided in [`../demo/demo_script.md`](../demo/demo_script.md).
-- **Live audio verification**: **[NOT RUN]** (deterministic decision logic
-  already covered by Phase 16 Layer 2 [SYNTHETIC-DETERMINISTIC]).
-- **Live empty-scene FP measurement**: **[NOT RUN]**.
+- **Live webcam demonstration performed (2026-09-04)** [OPERATOR-LIVE] — full
+  log in [`../demo/live_session_2026-09-04.md`](../demo/live_session_2026-09-04.md).
+  Demonstrated: startup + all component init (audio/detector/depth/camera/
+  tracker) → SYSTEM READY; person detection; direction (ahead / on your left /
+  on your right); proximity + escalation; all four alert trigger reasons
+  (`new_object`, `proximity_escalation`, `direction_change`, `cooldown_expired`);
+  cooldown / duplicate suppression; clean shutdown. This is a single,
+  uncontrolled session — **not** a controlled benchmark and **not** an accuracy test.
+  - Honest caveats from that session: track IDs fragmented (1→5→…→112) at the
+    low frame rate, so **stable long-term ID persistence and clean brief-occlusion
+    coasting were NOT cleanly demonstrated**; and FPS was below baseline and
+    degraded under CPU contention (see §11).
+- **Live audio verification**: wording, escalation, direction/proximity phrasing,
+  and cooldown spacing were heard during the live session [OPERATOR-LIVE]. The
+  deterministic decision logic behind them is also covered by Phase 16 Layer 2
+  [SYNTHETIC-DETERMINISTIC].
+- **Live empty-scene FP measurement (Scenario J)**: **[NOT RUN]**.
+- **Discrete scenarios E, F, H, I** as isolated checks: **[NOT RUN]**.
 
 ## 11. Performance status
 
@@ -142,9 +155,17 @@ torch/torchvision). Dependency manifest reconciled to the installed versions
   [MEASURED — Phase 14 tests]
 - Phase 13/14 measured end-to-end baseline: ≈ **11.6–12.5 FPS** on the
   reference CPU (i5-12450H). [MEASURED — prior phases]
-- A **fresh Phase 18 live performance run**: **[NOT RUN]**. When executed via
+- **Live session (2026-09-04)** [OPERATOR-LIVE, single, CPU-contended]: FPS
+  observed ~**7.9–8.4** initially, declining to ~**5.0–5.7** with a low of
+  **3.4**; detector ~85–193 ms; depth (when it ran) ~126–406 ms; CPU ~80–100%
+  **system-wide**; process RSS ~555–573 MB. This was **below** the baseline and
+  **degraded over time under CPU saturation** — consistent with contention/
+  throttling, **not** established as a code regression. Per project rule, a
+  single low/degrading run is not treated as a regression.
+- A **clean Phase 18 performance characterization** (≥3 runs with other apps
+  closed) is **[NOT RUN]**. When executed via
   `tools/phase16_final_eval.py --capture-perf`, compare against the 11.6–12.5
-  FPS baseline; a single low run is not a regression. No live FPS is fabricated.
+  FPS baseline. No live FPS is fabricated.
 
 ## 12. Limitations
 

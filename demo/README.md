@@ -43,15 +43,25 @@ operator following [`demo_script.md`](demo_script.md).
   `python tools/phase16_final_eval.py` → writes `data/evaluation/phase16_report_<ts>.txt`
 - Reproducibility + checklists: [`../docs/reproducibility.md`](../docs/reproducibility.md)
 
-## Items that are [NOT RUN] (require physical execution)
+## Live session performed (2026-09-04)  [OPERATOR-LIVE]
 
-These are intentionally **not** produced headlessly and must **not** be
-fabricated. Produce them by following [`demo_script.md`](demo_script.md):
+A live webcam session was performed and recorded verbatim in
+[`live_session_2026-09-04.md`](live_session_2026-09-04.md). It demonstrated:
+startup + all component init, SYSTEM READY, person detection, direction
+(ahead/left/right), proximity + escalation, all four alert trigger reasons,
+cooldown/duplicate suppression, and clean shutdown. It also recorded honest
+caveats: FPS was **below** the Phase 13/14 baseline and **degraded** under CPU
+contention (~8 → ~5 → 3.4 FPS), and **track IDs fragmented** at that low frame
+rate (stable-ID persistence not cleanly demonstrated). This is a single,
+uncontrolled session — **not** a controlled benchmark and **not** an accuracy test.
 
-- Live webcam demonstration (scenarios A–K) — screenshots / notes. **[NOT RUN]**
-- Live audio verification (wording, no-overlap, suppression, escalation). **[NOT RUN]**
+## Still [NOT RUN] (require separate physical execution — not fabricated)
+
 - Live empty-scene false-positive measurement (`fp_test.py` CSV). **[NOT RUN]**
-- Live performance runs (FPS/latency/CPU/RSS via `--capture-perf`). **[NOT RUN]**
+- Clean performance runs (FPS/latency/CPU/RSS via `--capture-perf`, ≥3 runs with
+  other apps closed). **[NOT RUN]**
+- Discrete scenarios E (static-object confirmation), F (multiple distinct
+  objects), H (brief occlusion), I (difficult/background) as isolated checks. **[NOT RUN]**
 - Optional demo video. **[NOT RUN]** (not required)
 
 When an operator completes these, drop the resulting files here (e.g.
