@@ -1,0 +1,258 @@
+/**
+ * Real-Time AI Vision Navigation Assistant — Accessible Stylesheet
+ * High-contrast, minimal, calm, and distraction-free design for blind and visually impaired users.
+ */
+
+:root {
+    --bg-primary: #0a0e17;
+    --bg-surface: #131b2e;
+    --bg-card: #18223a;
+    --border-subtle: #243254;
+    --border-highlight: #3b82f6;
+
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    --color-danger: #ef4444;
+    --color-danger-bg: rgba(239, 68, 68, 0.15);
+    --color-warning: #f59e0b;
+    --color-warning-bg: rgba(245, 158, 11, 0.15);
+    --color-success: #10b981;
+    --color-success-bg: rgba(16, 185, 129, 0.15);
+    --color-cyan: #06b6d4;
+    --color-cyan-bg: rgba(6, 182, 212, 0.15);
+
+    --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    line-height: 1.5;
+}
+
+/* Header & Status */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.app-title-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.status-pill {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.status-pill.ready {
+    background-color: var(--color-cyan-bg);
+    color: var(--color-cyan);
+    border: 1px solid var(--color-cyan);
+}
+
+.status-pill.active {
+    background-color: var(--color-success-bg);
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
+}
+
+.status-pill.warning {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning);
+}
+
+.status-pill.danger {
+    background-color: var(--color-danger-bg);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger);
+}
+
+/* Main Content Layout */
+.main-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 16px;
+    gap: 16px;
+}
+
+/* High-Contrast Action Headline Card */
+.action-card {
+    background-color: var(--bg-card);
+    border: 2px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.action-card.action-stop {
+    border-color: var(--color-danger);
+    background-color: var(--color-danger-bg);
+}
+
+.action-card.action-move {
+    border-color: var(--color-warning);
+    background-color: var(--color-warning-bg);
+}
+
+.action-card.action-clear {
+    border-color: var(--color-success);
+    background-color: var(--color-success-bg);
+}
+
+.action-headline {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.action-subline {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+/* Video & Overlay Viewport */
+.camera-viewport-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background-color: #000;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+}
+
+.camera-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.debug-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* Large Accessible Touch Controls */
+.controls-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn-large {
+    min-height: 56px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    border-radius: 14px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: transform 0.1s ease, filter 0.2s ease;
+    padding: 12px 24px;
+}
+
+.btn-large:active {
+    transform: scale(0.98);
+}
+
+.btn-primary {
+    background-color: var(--border-highlight);
+    color: #ffffff;
+}
+
+.btn-danger {
+    background-color: var(--color-danger);
+    color: #ffffff;
+}
+
+.btn-secondary {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+}
+
+.btn-warning {
+    background-color: var(--color-warning);
+    color: #000000;
+}
+
+.secondary-actions-bar {
+    display: flex;
+    gap: 10px;
+}
+
+.secondary-actions-bar button {
+    flex: 1;
+    min-height: 48px;
+}
+
+/* Safety Disclaimer */
+.safety-disclaimer-box {
+    background-color: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Hidden ARIA Live Region */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

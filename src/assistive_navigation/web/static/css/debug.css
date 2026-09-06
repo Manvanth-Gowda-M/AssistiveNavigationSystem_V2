@@ -1,0 +1,95 @@
+/**
+ * Developer Debug Panel Stylesheet
+ */
+
+.debug-drawer {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 12px;
+}
+
+.debug-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.debug-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-cyan);
+}
+
+.debug-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.debug-metric-box {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+.debug-metric-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.debug-metric-val {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Scenario Runner Box */
+.scenario-runner-box {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.scenario-control-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.scenario-select {
+    flex: 1;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+}
+
+.scenario-log {
+    background-color: #050811;
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 8px;
+    font-family: monospace;
+    font-size: 0.78rem;
+    max-height: 120px;
+    overflow-y: auto;
+    color: #a5f3fc;
+}
+
+.log-entry {
+    margin-bottom: 4px;
+}
+
+.log-success {
+    color: #4ade80;
+    font-weight: 700;
+}

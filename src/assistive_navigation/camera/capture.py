@@ -186,10 +186,12 @@ class CameraCapture:
             )
 
         # Request resolution and buffer size from the driver.
-        # These are hints — the driver may ignore them.
+        # Use MJPG and 1-frame buffer to eliminate driver capture lag and achieve high FPS.
+        self._cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH,  self._requested_width)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self._requested_height)
-        self._cap.set(cv2.CAP_PROP_BUFFERSIZE,   self._buffer_size)
+        self._cap.set(cv2.CAP_PROP_FPS,          self._max_fps)
+        self._cap.set(cv2.CAP_PROP_BUFFERSIZE,   1)
 
         # Read back what the driver actually gave us
         self._actual_width  = int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH))

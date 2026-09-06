@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Vision Navigation Assistant</title>
+    
+    <!-- Accessibility Meta -->
+    <meta name="description" content="Real-time spatial vision guidance assistant for blind and visually impaired users.">
+    <meta name="theme-color" content="#0a0e17">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/debug.css">
+
+    <!-- MediaPipe Tasks Vision Edge AI Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14" crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <!-- Screen Reader ARIA Live Region (Polite & Assertive Announcements) -->
+    <div id="aria-live-announcer" class="visually-hidden" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- Application Header -->
+    <header class="app-header" role="banner">
+        <div class="app-title-box">
+            <span style="font-size:1.5rem;" aria-hidden="true">🦯</span>
+            <h1 class="app-title">Vision Assistant</h1>
+        </div>
+        <div id="main-status-pill" class="status-pill ready" role="status" aria-label="System status">
+            Ready
+        </div>
+    </header>
+
+    <!-- Main Mobile Layout -->
+    <main class="main-container" role="main">
+
+        <!-- Safety Disclaimer -->
+        <div class="safety-disclaimer-box" role="note">
+            <span aria-hidden="true">⚠️</span>
+            <span><strong>Assistive Research Prototype:</strong> Does not replace a white cane or guide dog. Use cautious judgment.</span>
+        </div>
+
+        <!-- Real-Time Direction Action Card (Audio-First Visual Companion) -->
+        <section class="action-card" id="main-action-card" aria-labelledby="main-action-headline" aria-describedby="main-reason-subline">
+            <div class="action-headline" id="main-action-headline">READY</div>
+            <div class="action-subline" id="main-reason-subline">Press Start Assistance to begin navigation</div>
+        </section>
+
+        <!-- Camera Viewport & Debug Overlay -->
+        <section class="camera-viewport-wrapper" aria-label="Live Camera Stream">
+            <video id="camera-video-feed" class="camera-video" playsinline muted autoplay aria-hidden="true"></video>
+            <canvas id="debug-canvas-overlay" class="debug-canvas" aria-hidden="true"></canvas>
+        </section>
+
+        <!-- Primary Accessible Touch Controls (>=48px touch target) -->
+        <section class="controls-container" aria-label="Assistance Controls">
+            <button id="btn-start-assist" class="btn-large btn-primary" aria-label="Start Vision Assistance (Press Space)">
+                <span aria-hidden="true">▶️</span> START ASSISTANCE
+            </button>
+
+            <button id="btn-pause-assist" class="btn-large btn-secondary" style="display:none;" data-paused="false" aria-label="Pause or Resume Assistance (Press P)">
+                <span aria-hidden="true">⏸️</span> PAUSE
+            </button>
+
+            <button id="btn-stop-assist" class="btn-large btn-danger" style="display:none;" aria-label="Stop Vision Assistance (Press Space)">
+                <span aria-hidden="true">⏹️</span> STOP
+            </button>
+
+            <div class="secondary-actions-bar">
+                <button id="btn-mute-audio" class="btn-large btn-secondary" aria-label="Toggle Mute Audio (Press M)">
+                    🔊 Mute
+                </button>
+                <button id="btn-toggle-debug" class="btn-large btn-secondary" aria-label="Toggle Developer Debug Mode (Press D)">
+                    🛠️ Debug
+                </button>
+            </div>
+        </section>
+
+        <!-- Developer / Diagnostic Debug Drawer (Hidden by default) -->
+        <aside class="debug-drawer" id="debug-drawer-panel" style="display:none;" aria-label="Developer Diagnostics Panel">
+            <div class="debug-header">
+                <h2 class="debug-title">Edge AI Telemetry & Corridor HUD</h2>
+            </div>
+
+            <div class="debug-grid">
+                <div class="debug-metric-box">
+                    <div class="debug-metric-label">Inference FPS</div>
+                    <div class="debug-metric-val" id="debug-fps">-- FPS</div>
+                </div>
+                <div class="debug-metric-box">
+                    <div class="debug-metric-label">Latency</div>
+                    <div class="debug-metric-val" id="debug-latency">-- ms</div>
+                </div>
+                <div class="debug-metric-box">
+                    <div class="debug-metric-label">Backend</div>
+                    <div class="debug-metric-val" id="debug-backend">--</div>
+                </div>
+                <div class="debug-metric-box">
+                    <div class="debug-metric-label">Left Clear</div>
+                    <div class="debug-metric-val" id="debug-left-clearance">100%</div>
+                </div>
+                <div class="debug-metric-box">
+                    <div class="debug-metric-label">Right Clear</div>
+                    <div class="debug-metric-val" id="debug-right-clearance">100%</div>
+                </div>
+                <div class="debug-metric-box">
+                    <div class="debug-metric-label">Action State</div>
+                    <div class="debug-metric-val" id="debug-action">CONTINUE</div>
+                </div>
+            </div>
+
+            <!-- Synthetic Scenario Simulation Studio -->
+            <div class="scenario-runner-box">
+                <div style="font-size:0.85rem; font-weight:700; margin-bottom:8px; color:var(--text-secondary);">
+                    Synthetic Scenario Benchmark Studio (16 Test Cases)
+                </div>
+                <div class="scenario-control-bar">
+                    <select id="select-test-scenario" class="scenario-select" aria-label="Select Test Scenario"></select>
+                    <button id="btn-run-scenario" class="btn-large btn-primary" style="min-height:38px; padding:6px 14px; font-size:0.85rem;">
+                        Run
+                    </button>
+                </div>
+                <div class="scenario-log" id="scenario-output-log">
+                    <div class="log-entry">Select a test scenario and click Run to simulate frame perception.</div>
+                </div>
+            </div>
+        </aside>
+
+    </main>
+
+    <!-- App Module Script -->
+    <script type="module" src="./js/app.js"></script>
+</body>
+</html>

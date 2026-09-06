@@ -440,6 +440,16 @@ class ObjectDetector:
         return self._model_name
 
     @property
+    def input_size(self) -> int:
+        """Input image dimension (pixels) for YOLO inference."""
+        return self._input_size
+
+    @input_size.setter
+    def input_size(self, size: int) -> None:
+        """Set input image dimension (pixels) for YOLO inference."""
+        self._input_size = max(160, int(size))
+
+    @property
     def inference_count(self) -> int:
         """Total number of frames processed since load()."""
         return self._inference_count
