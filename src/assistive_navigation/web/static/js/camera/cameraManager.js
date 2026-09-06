@@ -27,33 +27,66 @@ export class CameraManager {
             throw new Error("Camera API unavailable in this browser context.");
         }
 
-        const constraints = {
-            audio: false,
-            video: {
-                facingMode: { ideal: "environment" },
-                width: { ideal: 640 },
-                height: { ideal: 480 },
-                frameRate: { ideal: 30 }
+        const constraintCandidates = [
+            // Strategy 1: Rear camera preferred with standard resolution
+            {
+                audio: false,
+                video: {
+                    facingMode: { ideal: "environment" },
+                    width: { ideal: 640, min: 320 },
+                    height: { ideal: 480, min: 240 }
+                }
+            },
+            // Strategy 2: Simple rear camera
+            {
+                audio: false,
+                video: { facingMode: { ideal: "environment" } }
+            },
+            // Strategy 3: Any available camera (front / webcam / USB)
+            {
+                audio: false,
+                video: { facingMode: "user" }
+            },
+            // Strategy 4: Unconstrained camera
+            {
+                audio: false,
+                video: true
             }
-        };
+        ];
 
-        try {
-            this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-            this.video.srcObject = this.stream;
-            await new Promise((resolve) => {
-                this.video.onloadedmetadata = () => {
-                    this.video.play();
-                    this.isActive = true;
-                    resolve(true);
-                };
-            });
-            console.log("[CameraManager] Camera active:", this.video.videoWidth, "x", this.video.videoHeight);
-            return true;
-        } catch (err) {
-            console.error("[CameraManager] Error opening camera:", err);
-            this.isActive = false;
-            throw err;
+        let lastError = null;
+
+        for (const constraints of constraintCandidates) {
+            try {
+                console.log("[CameraManager] Requesting camera with constraints:", JSON.stringify(constraints));
+                this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                this.video.srcObject = this.stream;
+                this.video.setAttribute("playsinline", "true");
+                this.video.setAttribute("autoplay", "true");
+                this.video.muted = true;
+
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        this.video.play().then(resolve).catch(resolve);
+                    }, 1200);
+
+                    this.video.onloadedmetadata = () => {
+                        clearTimeout(timeout);
+                        this.video.play().then(resolve).catch(resolve);
+                    };
+                });
+
+                this.isActive = true;
+                console.log("[CameraManager] Camera active:", this.video.videoWidth, "x", this.video.videoHeight);
+                return true;
+            } catch (err) {
+                console.warn("[CameraManager] Constraint failed:", err.name, err.message);
+                lastError = err;
+            }
         }
+
+        this.isActive = false;
+        throw (lastError || new Error("Unable to access camera device."));
     }
 
     /**
