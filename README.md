@@ -128,15 +128,18 @@ python -m venv .venv
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Download the depth model (YOLO auto-downloads on first run)
+# 3. Install this project into the venv (enables `python -m assistive_navigation`)
+pip install -e .
+
+# 4. Download the depth model (YOLO auto-downloads on first run)
 python scripts/download_models.py
 
-# 4. Run the system (debug window)
+# 5. Run the system (debug window)
 python -m assistive_navigation
 #    or headless / audio-only:
 python -m assistive_navigation --headless
 
-# 5. Exit: press Q in the debug window, or Ctrl+C
+# 6. Exit: press Q in the debug window, or Ctrl+C
 ```
 
 Full clean-machine steps: [`docs/installation.md`](docs/installation.md).

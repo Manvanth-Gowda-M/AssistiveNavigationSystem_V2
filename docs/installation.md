@@ -40,11 +40,20 @@ python -m pip install --upgrade pip
 
 # 5. Install the pinned dependencies
 pip install -r requirements.txt
+
+# 6. Install this project into the venv (editable) so `python -m ...` works
+pip install -e .
 ```
 
 The pinned versions in [`requirements.txt`](../requirements.txt) match the
 tested environment exactly. Installing `ultralytics` automatically pulls in
 `torch` and `torchvision` (CPU builds).
+
+Step 6 (`pip install -e .`) installs the package in editable mode. This is what
+makes `python -m assistive_navigation` resolve the package. Without it, the
+`-m` command fails with `No module named assistive_navigation`. (If you skip the
+install, you can still run from the project root via
+`$env:PYTHONPATH="src"; python -m assistive_navigation`.)
 
 > **Do not upgrade/downgrade** the pinned versions casually — the detection,
 > tracking, and depth behaviour (and the Phase 4/15/16 evaluation baselines)

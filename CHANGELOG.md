@@ -5,6 +5,27 @@ Format: [Phase] Date — Description
 
 ---
 
+## [Packaging] 2026-09-04 — Fix `python -m assistive_navigation` startup
+
+Isolated packaging/installation follow-up on top of the published Phase 0–18
+baseline. No pipeline behaviour, configuration values, or evaluation results
+changed.
+
+- Fixed the invalid build backend in `pyproject.toml`
+  (`setuptools.backends.legacy:build` → `setuptools.build_meta`). The old value
+  does not exist, which is why `pip install -e .` failed and
+  `python -m assistive_navigation` reported `No module named ...`.
+- Added `src/assistive_navigation/__main__.py` (5 lines) delegating to
+  `main.main()` so the package is runnable via `python -m assistive_navigation`.
+  No pipeline logic added.
+- Installed the project editable into the venv (`pip install -e .`).
+- Verified: full non-hardware regression **570 passed, 0 failed**;
+  `python -m assistive_navigation --help` and `--headless` resolve correctly.
+- Updated startup docs (README, `docs/installation.md`, `demo/demo_script.md`)
+  to include the one-time `pip install -e .` step.
+
+---
+
 ## [Phase 18] 2026-09-04 — Final Demonstration & Validation
 
 Validation, evidence, and presentation only. No pipeline source,

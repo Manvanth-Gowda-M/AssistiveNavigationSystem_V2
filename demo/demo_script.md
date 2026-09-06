@@ -20,6 +20,7 @@ misses (they are expected of a research prototype).
 
 ```powershell
 .venv\Scripts\activate
+pip install -e .                          # one-time: enables `python -m assistive_navigation`
 python -m assistive_navigation            # debug window
 #   or: python -m assistive_navigation --headless   # audio-only
 ```
