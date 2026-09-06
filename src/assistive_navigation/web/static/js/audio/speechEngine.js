@@ -28,35 +28,45 @@ export class GuidanceSpeechEngine {
 
         const rawLabel = primaryObstacle ? primaryObstacle.label : "obstacle";
         const label = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1);
+        let sideText = "ahead";
+        if (primaryObstacle) {
+            if (primaryObstacle.centerX < 0.35 || reason.includes("left_obstacle")) {
+                sideText = "on your left";
+            } else if (primaryObstacle.centerX > 0.65 || reason.includes("right_obstacle")) {
+                sideText = "on your right";
+            } else {
+                sideText = "ahead";
+            }
+        }
 
         if (action === "STOP") {
             if (reason === "obstacle_very_close") return `Stop. ${label} directly ahead.`;
             if (reason === "rapid_approach") return `Stop. ${label} approaching quickly.`;
             if (reason === "both_flanks_blocked") return phrases.STOP_BOTH_BLOCKED;
-            return `Stop. ${label} ahead.`;
+            return `Stop. ${label} ${sideText}.`;
         }
 
         if (action === "MOVE_RIGHT") {
-            return `${label} ahead. Move right.`;
+            return `${label} ${sideText}. Move right.`;
         }
         if (action === "MOVE_SLIGHTLY_RIGHT") {
-            return `${label} ahead. Move slightly right.`;
+            return `${label} ${sideText}. Move slightly right.`;
         }
         if (action === "MOVE_LEFT") {
-            return `${label} ahead. Move left.`;
+            return `${label} ${sideText}. Move left.`;
         }
         if (action === "MOVE_SLIGHTLY_LEFT") {
-            return `${label} ahead. Move slightly left.`;
+            return `${label} ${sideText}. Move slightly left.`;
         }
         if (action === "CAUTION") {
-            return `${label} ahead. Caution.`;
+            return `${label} ${sideText}. Caution.`;
         }
         if (action === "CONTINUE") {
             // Silence is golden: do not repeatedly speak "Path clear" unless recovering
             return (reason === "recovered_clear") ? phrases.PATH_CLEAR : "";
         }
 
-        return `${label} ahead.`;
+        return `${label} ${sideText}.`;
     }
 
     /**
