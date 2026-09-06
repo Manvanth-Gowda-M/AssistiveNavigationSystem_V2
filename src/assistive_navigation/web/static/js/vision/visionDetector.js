@@ -6,11 +6,13 @@
 
 import { VisionConfig } from "../config/visionConfig.js";
 import { NormalizedDetection } from "./detectionTypes.js";
+import { BarrierDetector } from "./barrierDetector.js";
 
 export class VisionDetector {
     constructor() {
         this.cocoModel = null;
         this.mpDetector = null;
+        this.barrierDetector = new BarrierDetector();
         this.isLoaded = false;
         this.isLoading = false;
         this.isBusy = false;
@@ -172,6 +174,14 @@ export class VisionDetector {
                             }));
                         }
                     }
+                }
+            }
+
+            // 3. Run Solid Surface / Wall Barrier Analysis
+            if (normalizedDetections.length === 0 || normalizedDetections.every(d => d.label !== "wall")) {
+                const wallDet = this.barrierDetector.detectWallBarrier(sourceElement, timestamp);
+                if (wallDet) {
+                    normalizedDetections.push(new NormalizedDetection(wallDet));
                 }
             }
 

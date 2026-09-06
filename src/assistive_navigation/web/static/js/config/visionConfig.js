@@ -14,26 +14,27 @@ export const VisionConfig = {
     inferenceIntervalMs: 66,        // 1000 / 15 = ~66ms between inference frames
     inputResolution: { width: 384, height: 384 }, // Model-appropriate resized frame
 
-    // Confidence Thresholds
-    minDetectionConfidence: 0.25,   // Floor confidence for object acceptance (tuned for indoor lighting)
-    highRiskConfidence: 0.20,       // Lower floor for high-risk hazards (vehicles, obstacles)
-    temporalConfirmFrames: 1,       // 1-frame instant reactivity for immediate obstacle alerts
+    // High-Sensitivity Confidence Thresholds (Captures every object & faint contours)
+    minDetectionConfidence: 0.15,   // Floor confidence for object acceptance
+    highRiskConfidence: 0.12,       // Lower floor for high-risk hazards & barriers
+    temporalConfirmFrames: 1,       // 1-frame instant reactivity
     trackTimeoutFrames: 10,         // Frames to coast before dropping lost track
 
     // Camera Quality Diagnostics
-    lowLightBrightnessThreshold: 28, // Below this average luminance triggers "Low visibility"
-    motionBlurGradientThreshold: 12, // Below this Laplacian variance indicates blur
+    lowLightBrightnessThreshold: 25, // Below this average luminance triggers "Low visibility"
+    motionBlurGradientThreshold: 10, // Below this Laplacian variance indicates blur
 
-    // High Priority Semantic Categories
+    // High Priority Semantic Categories (Immediate Navigation Hazards)
     highPriorityLabels: new Set([
         "person", "bicycle", "car", "motorcycle", "bus", "truck",
         "stairs", "door", "stop sign", "traffic light", "fire hydrant",
-        "laptop", "tv", "cell phone"
+        "laptop", "tv", "cell phone", "wall", "barrier", "pillar"
     ]),
 
     mediumPriorityLabels: new Set([
         "chair", "couch", "potted plant", "bed", "dining table",
         "toilet", "suitcase", "backpack", "umbrella", "bench",
-        "keyboard", "mouse", "bottle", "cup", "book"
+        "keyboard", "mouse", "bottle", "cup", "book", "sink",
+        "refrigerator", "microwave", "oven", "vase", "clock"
     ])
 };

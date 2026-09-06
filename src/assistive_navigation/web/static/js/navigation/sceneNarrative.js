@@ -15,6 +15,16 @@ export class SceneNarrator {
             return "No obstacles or objects detected. The immediate space appears open.";
         }
 
+        const formatObjectList = (items) => {
+            const counts = {};
+            for (const it of items) {
+                counts[it] = (counts[it] || 0) + 1;
+            }
+            return Object.entries(counts).map(([name, count]) => {
+                return count > 1 ? `${count} ${name}s` : name;
+            }).join(", ");
+        };
+
         const leftObjects = [];
         const centerObjects = [];
         const rightObjects = [];
@@ -22,14 +32,14 @@ export class SceneNarrator {
         for (const obj of trackedObjects) {
             const zone = SpatialAnalysis.getDirectionZone(obj.centerX);
             const dist = obj.estimatedDistance === "VERY_CLOSE" ? "very close" :
-                         (obj.estimatedDistance === "CLOSE" ? "close ahead" :
+                         (obj.estimatedDistance === "CLOSE" ? "close" :
                          (obj.estimatedDistance === "MEDIUM" ? "a few steps away" : "further back"));
 
-            const desc = `${obj.label} (${dist})`;
+            const itemText = `${obj.label} (${dist})`;
 
             if (zone === "LEFT") leftObjects.push(obj.label);
             else if (zone === "RIGHT") rightObjects.push(obj.label);
-            else centerObjects.push(`${obj.label} ${dist}`);
+            else centerObjects.push(itemText);
         }
 
         const parts = [];
@@ -38,10 +48,10 @@ export class SceneNarrator {
             parts.push(`Ahead: ${centerObjects.join(", ")}`);
         }
         if (leftObjects.length > 0) {
-            parts.push(`On your left: ${[...new Set(leftObjects)].join(", ")}`);
+            parts.push(`On your left: ${formatObjectList(leftObjects)}`);
         }
         if (rightObjects.length > 0) {
-            parts.push(`On your right: ${[...new Set(rightObjects)].join(", ")}`);
+            parts.push(`On your right: ${formatObjectList(rightObjects)}`);
         }
 
         // Add pathway advice
