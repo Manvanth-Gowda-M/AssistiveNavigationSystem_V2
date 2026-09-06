@@ -28,47 +28,45 @@ export class VisionDetector {
         console.log("[VisionDetector] Initializing Edge Vision Model...");
 
         try {
-            // Attempt loading MediaPipe Tasks Vision from CDN
-            if (window.FilesetResolver && window.ObjectDetector) {
-                const vision = await window.FilesetResolver.forVisionTasks(VisionConfig.wasmLoaderPath);
-                this.detector = await window.ObjectDetector.createFromOptions(vision, {
-                    baseOptions: {
-                        modelAssetPath: VisionConfig.modelAssetPath,
-                        delegate: "GPU" // Hardware GPU / WebGL acceleration where supported
-                    },
-                    runningMode: "IMAGE",
-                    scoreThreshold: VisionConfig.highRiskConfidence,
-                    maxResults: 8
-                });
-                this.activeBackend = "MEDIAPIPE_GPU";
-                this.isLoaded = true;
-                this.isLoading = false;
-                console.log("[VisionDetector] MediaPipe GPU Vision Detector ready.");
-                return true;
-            }
-        } catch (gpuError) {
-            console.warn("[VisionDetector] GPU delegate fallback to CPU/WASM:", gpuError);
-            try {
-                if (window.FilesetResolver && window.ObjectDetector) {
-                    const vision = await window.FilesetResolver.forVisionTasks(VisionConfig.wasmLoaderPath);
-                    this.detector = await window.ObjectDetector.createFromOptions(vision, {
+            // Check window.tasksVision (standard MediaPipe bundle export) or global
+            const visionTasks = window.tasksVision || window;
+            const FilesetResolver = visionTasks.FilesetResolver || window.FilesetResolver;
+            const ObjectDetector = visionTasks.ObjectDetector || window.ObjectDetector;
+
+            if (FilesetResolver && ObjectDetector) {
+                const vision = await FilesetResolver.forVisionTasks(VisionConfig.wasmLoaderPath);
+                try {
+                    this.detector = await ObjectDetector.createFromOptions(vision, {
+                        baseOptions: {
+                            modelAssetPath: VisionConfig.modelAssetPath,
+                            delegate: "GPU" // Hardware GPU / WebGL acceleration
+                        },
+                        runningMode: "IMAGE",
+                        scoreThreshold: VisionConfig.highRiskConfidence,
+                        maxResults: 12
+                    });
+                    this.activeBackend = "MEDIAPIPE_GPU";
+                } catch (gpuErr) {
+                    console.warn("[VisionDetector] GPU delegate fallback to CPU/WASM:", gpuErr);
+                    this.detector = await ObjectDetector.createFromOptions(vision, {
                         baseOptions: {
                             modelAssetPath: VisionConfig.modelAssetPath,
                             delegate: "CPU"
                         },
                         runningMode: "IMAGE",
                         scoreThreshold: VisionConfig.highRiskConfidence,
-                        maxResults: 8
+                        maxResults: 12
                     });
                     this.activeBackend = "MEDIAPIPE_CPU";
-                    this.isLoaded = true;
-                    this.isLoading = false;
-                    console.log("[VisionDetector] MediaPipe CPU/WASM Vision Detector ready.");
-                    return true;
                 }
-            } catch (cpuError) {
-                console.warn("[VisionDetector] MediaPipe load failed, switching to Server/Emulated Edge Detector:", cpuError);
+
+                this.isLoaded = true;
+                this.isLoading = false;
+                console.log(`[VisionDetector] ${this.activeBackend} Vision Detector ready.`);
+                return true;
             }
+        } catch (loadErr) {
+            console.warn("[VisionDetector] MediaPipe load error:", loadErr);
         }
 
         // Fallback: If MediaPipe script isn't dynamically loaded or offline fallback is active
@@ -84,7 +82,12 @@ export class VisionDetector {
      * Skips inference if previous frame is still busy to guarantee 0 latency buildup.
      */
     async detectFrame(sourceElement, timestamp = Date.now()) {
-        if (!this.isLoaded || this.isBusy) {
+        if (!this.isLoaded || this.isBusy || !sourceElement) {
+            return this.lastDetections;
+        }
+
+        // Ensure video is ready to be sampled
+        if (sourceElement.tagName === "VIDEO" && sourceElement.readyState < 2) {
             return this.lastDetections;
         }
 
@@ -92,7 +95,7 @@ export class VisionDetector {
         const normalizedDetections = [];
 
         try {
-            if (this.detector && (this.activeBackend.startsWith("MEDIAPIPE"))) {
+            if (this.detector && this.activeBackend.startsWith("MEDIAPIPE")) {
                 const results = this.detector.detect(sourceElement);
                 if (results && results.detections) {
                     const srcWidth = sourceElement.videoWidth || sourceElement.width || 640;

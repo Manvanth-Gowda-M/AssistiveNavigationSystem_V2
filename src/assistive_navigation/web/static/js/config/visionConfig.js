@@ -15,10 +15,10 @@ export const VisionConfig = {
     inputResolution: { width: 384, height: 384 }, // Model-appropriate resized frame
 
     // Confidence Thresholds
-    minDetectionConfidence: 0.45,   // Floor confidence for object acceptance
-    highRiskConfidence: 0.35,       // Lower floor for high-risk hazards (vehicles, etc.)
-    temporalConfirmFrames: 2,       // Number of consecutive frames needed for confirmation
-    trackTimeoutFrames: 8,          // Frames to coast before dropping lost track
+    minDetectionConfidence: 0.25,   // Floor confidence for object acceptance (tuned for indoor lighting)
+    highRiskConfidence: 0.20,       // Lower floor for high-risk hazards (vehicles, obstacles)
+    temporalConfirmFrames: 1,       // 1-frame instant reactivity for immediate obstacle alerts
+    trackTimeoutFrames: 10,         // Frames to coast before dropping lost track
 
     // Camera Quality Diagnostics
     lowLightBrightnessThreshold: 28, // Below this average luminance triggers "Low visibility"

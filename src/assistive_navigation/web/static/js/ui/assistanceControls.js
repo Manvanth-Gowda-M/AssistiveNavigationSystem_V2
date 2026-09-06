@@ -4,19 +4,24 @@
  */
 
 export class AssistanceControls {
-    constructor({ onStart, onPause, onResume, onStop, onToggleMute, onToggleDebug }) {
+    constructor({ onStart, onPause, onResume, onStop, onToggleMute, onToggleDebug, onDescribeScene, onToggleNarration }) {
         this.onStart = onStart;
         this.onPause = onPause;
         this.onResume = onResume;
         this.onStop = onStop;
         this.onToggleMute = onToggleMute;
         this.onToggleDebug = onToggleDebug;
+        this.onDescribeScene = onDescribeScene;
+        this.onToggleNarration = onToggleNarration;
 
         this.btnStart = document.getElementById("btn-start-assist");
         this.btnPause = document.getElementById("btn-pause-assist");
         this.btnStop = document.getElementById("btn-stop-assist");
         this.btnMute = document.getElementById("btn-mute-audio");
         this.btnDebug = document.getElementById("btn-toggle-debug");
+        this.btnDescribe = document.getElementById("btn-describe-scene");
+        this.btnNarrate = document.getElementById("btn-toggle-narrate");
+        this.viewport = document.querySelector(".camera-viewport-wrapper");
 
         this.initListeners();
         this.initKeyboardShortcuts();
@@ -25,6 +30,30 @@ export class AssistanceControls {
     initListeners() {
         if (this.btnStart) {
             this.btnStart.addEventListener("click", () => this.onStart());
+        }
+        if (this.btnDescribe) {
+            this.btnDescribe.addEventListener("click", () => this.onDescribeScene && this.onDescribeScene());
+        }
+        if (this.btnNarrate) {
+            this.btnNarrate.addEventListener("click", () => {
+                const isActive = this.btnNarrate.getAttribute("data-narrate") === "true";
+                const newState = !isActive;
+                this.btnNarrate.setAttribute("data-narrate", newState ? "true" : "false");
+                this.btnNarrate.textContent = newState ? "🗣️ Narration: ON" : "🗣️ Narration: OFF";
+                this.btnNarrate.className = newState ? "btn-large btn-warning" : "btn-large btn-secondary";
+                this.onToggleNarration && this.onToggleNarration(newState);
+            });
+        }
+        if (this.viewport) {
+            // Double-tap on viewport to trigger scene description
+            let lastTap = 0;
+            this.viewport.addEventListener("click", () => {
+                const now = Date.now();
+                if (now - lastTap < 400) {
+                    this.onDescribeScene && this.onDescribeScene();
+                }
+                lastTap = now;
+            });
         }
         if (this.btnPause) {
             this.btnPause.addEventListener("click", () => {

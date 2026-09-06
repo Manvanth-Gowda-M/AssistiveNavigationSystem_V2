@@ -51,10 +51,24 @@ export class GuidanceSpeechEngine {
             return phrases.CAUTION_AHEAD;
         }
         if (action === "CONTINUE") {
-            return phrases.PATH_CLEAR;
+            // Silence is golden: do not repeatedly speak "Path clear" unless recovering
+            return (reason === "recovered_clear") ? phrases.PATH_CLEAR : "";
         }
 
         return phrases.OBSTACLE_AHEAD;
+    }
+
+    /**
+     * Speaks a full natural language scene description.
+     */
+    speakSceneDescription(descriptionText) {
+        if (!this.isEnabled || !descriptionText) return;
+        // Priority 6: Non-emergency descriptive speech
+        this.queue.enqueue(new SpeechItem({
+            text: descriptionText,
+            priority: SpeechConfig.Priority.OBJECT_DESCRIPTION
+        }));
+        this.processQueue();
     }
 
     /**

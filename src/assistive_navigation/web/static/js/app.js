@@ -18,6 +18,7 @@ import { SpatialAnalysis } from "./navigation/spatialAnalysis.js";
 import { RiskEngine } from "./navigation/riskEngine.js";
 import { NavigationDecisionEngine } from "./navigation/decisionEngine.js";
 import { NavigationStateMachine, NavState } from "./navigation/stateMachine.js";
+import { SceneNarrator } from "./navigation/sceneNarrative.js";
 
 import { GuidanceSpeechEngine } from "./audio/speechEngine.js";
 import { AudioFirstUIManager } from "./ui/audioFirstUI.js";
@@ -45,13 +46,19 @@ class NavigationApp {
             this.handleStateChange(newState, oldState, payload);
         });
 
+        this.isLiveNarrationEnabled = false;
+        this.lastNarrationTime = 0;
+        this.lastActiveTracks = [];
+
         this.controls = new AssistanceControls({
             onStart: () => this.startAssistance(),
             onPause: () => this.pauseAssistance(),
             onResume: () => this.resumeAssistance(),
             onStop: () => this.stopAssistance(),
             onToggleMute: () => this.toggleMute(),
-            onToggleDebug: () => this.toggleDebug()
+            onToggleDebug: () => this.toggleDebug(),
+            onDescribeScene: () => this.describeCurrentScene(),
+            onToggleNarration: (enabled) => this.toggleLiveNarration(enabled)
         });
 
         // Loop control
@@ -188,8 +195,19 @@ class NavigationApp {
                 const confirmedTracks = activeTracks.filter(t => t.isConfirmed);
                 const decision = this.decisionEngine.evaluate(confirmedTracks, this.corridor, flankClearance);
 
+                this.lastActiveTracks = activeTracks;
+
                 // 6. Action-Oriented Speech Guidance
                 this.speechEngine.speakDecision(decision);
+
+                // Optional: Continuous Live Scene Narration (when enabled and path is not critical STOP)
+                if (this.isLiveNarrationEnabled && decision.action !== "STOP" && (timestamp - this.lastNarrationTime > 3800)) {
+                    const commentary = SceneNarrator.getLiveCommentary(activeTracks);
+                    if (commentary) {
+                        this.lastNarrationTime = timestamp;
+                        this.speechEngine.speakSceneDescription(commentary);
+                    }
+                }
 
                 // 7. UI Updates
                 this.ui.updateAction(decision);
@@ -214,6 +232,23 @@ class NavigationApp {
         };
 
         this.animationFrameId = requestAnimationFrame(loop);
+    }
+
+    describeCurrentScene() {
+        const allTracks = this.lastActiveTracks.length > 0 ? this.lastActiveTracks : Array.from(this.tracker.tracks.values());
+        const flankClearance = SpatialAnalysis.evaluateFlankClearance(allTracks, this.corridor.getBounds());
+        const description = SceneNarrator.describeScene(allTracks, flankClearance);
+        this.speechEngine.speakSceneDescription(description);
+        if (this.ui.reasonSubline) {
+            this.ui.reasonSubline.textContent = description;
+        }
+    }
+
+    toggleLiveNarration(enabled) {
+        this.isLiveNarrationEnabled = enabled;
+        if (enabled) {
+            this.describeCurrentScene();
+        }
     }
 
     stopLoop() {
