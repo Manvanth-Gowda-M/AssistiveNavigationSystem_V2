@@ -106,6 +106,12 @@ export class WorkerDetectorAdapter {
             case "model-progress":
                 this.onModelProgress(msg);
                 return;
+            case "init-stage":
+                // Which part of initialisation the worker reached. Surfaced so a
+                // stall can be attributed to the runtime, the download or the
+                // session build rather than guessed at.
+                this.onModelProgress({ stage: `worker-${msg.stage}` });
+                return;
             case "infer-result":
                 this._settleInference(msg, null);
                 return;

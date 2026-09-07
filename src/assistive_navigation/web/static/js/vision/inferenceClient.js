@@ -24,6 +24,7 @@ import {
 } from "./backendSelector.js";
 import { Runtime, getModel, rankCandidates, resolveModelUrl } from "../config/modelRegistry.js";
 import { VisionConfig } from "../config/visionConfig.js";
+import { withTimeout } from "../utils/async.js";
 import { WorkerDetectorAdapter } from "./adapters/workerAdapter.js";
 import { MediaPipeDetectorAdapter } from "./adapters/mediapipeAdapter.js";
 import { TfjsCocoSsdAdapter } from "./adapters/tfjsCocoSsdAdapter.js";
@@ -138,6 +139,16 @@ export class InferenceClient {
 
         let adapter = null;
         try {
+            // The tensor size is dictated by the MODEL, not by the device
+            // profile. The exported ONNX graphs have a static input shape, so
+            // feeding a profile-derived 256x256 tensor into a 320x320 graph makes
+            // every inference fail. The profile's preferred input size is used to
+            // *rank* candidates; the chosen model then sets the actual size.
+            if (model.inputSize && model.inputSize !== this.framePipeline.inputSize) {
+                this.framePipeline.setInputSize(model.inputSize);
+            }
+            attempt.inputSize = this.framePipeline.inputSize;
+
             adapter = this._createAdapter(backendEntry, model);
             this.onEvent("selection-attempt", { ...attempt, stage: "init" });
 
@@ -154,10 +165,15 @@ export class InferenceClient {
             });
             attempt.warmup = warm;
 
-            const verdict = evaluateWarmup(warm, VisionConfig.warmup.maxAcceptableLatencyMs);
-            attempt.reason = verdict.reason;
+            const verdict = evaluateWarmup(
+                warm,
+                VisionConfig.warmup.maxAcceptableLatencyMs,
+                VisionConfig.warmup.maxFirstPassMs
+            );
+            attempt.reason = warm.error ? `${verdict.reason} (${warm.error})` : verdict.reason;
             attempt.p50 = verdict.p50;
             attempt.p95 = verdict.p95;
+            attempt.firstPassMs = verdict.firstPassMs;
 
             if (!verdict.accepted) {
                 adapter.dispose();
@@ -231,7 +247,34 @@ export class InferenceClient {
             }
 
             for (const model of candidates) {
-                const { accepted, attempt } = await this._tryCandidate(backendEntry, model);
+                // Bounded per candidate. A single slow session build - WebGPU
+                // shader compilation for an attention-heavy graph can take tens of
+                // seconds - must not consume the whole startup budget and starve
+                // the candidates that would have worked.
+                let outcome;
+                try {
+                    outcome = await withTimeout(
+                        this._tryCandidate(backendEntry, model),
+                        VisionConfig.warmup.candidateTimeoutMs,
+                        `${model.key} on ${backendEntry.id}`
+                    );
+                } catch (err) {
+                    outcome = {
+                        accepted: false,
+                        attempt: {
+                            backendId: backendEntry.id,
+                            backendLabel: BACKEND_LABELS[backendEntry.id] || backendEntry.id,
+                            modelKey: model.key,
+                            modelLabel: model.label,
+                            candidate: model.candidate,
+                            accepted: false,
+                            reason: String(err?.message || err)
+                        }
+                    };
+                    this._disposeAdapter();
+                }
+
+                const { accepted, attempt } = outcome;
                 this.attempts.push(attempt);
                 this.onEvent("selection-result", attempt);
 
@@ -376,19 +419,28 @@ export class InferenceClient {
         await this.adapter?.updateDetectionConfig?.(this.detectionConfig);
     }
 
-    /** Change inference input size. Requires a session rebuild for ORT. */
+    /**
+     * Requested inference input size.
+     *
+     * Refused for tensor-based adapters: the exported ONNX graphs have a static
+     * input shape, so changing the tensor size without changing the model would
+     * make every inference fail. Reducing resolution on those adapters means
+     * selecting a differently-exported model, not resizing the tensor. The
+     * scheduler reduces *rate* instead, which is the lever that actually exists.
+     */
     async setInputSize(inputSize) {
-        if (inputSize === this.framePipeline.inputSize) return { ok: true, rebuilt: false };
-        this.framePipeline.setInputSize(inputSize);
+        if (inputSize === this.framePipeline.inputSize) return { ok: true, changed: false };
+
         if (this.adapter?.needsTensor) {
-            this.adapter.inputSize = inputSize;
-            // The ONNX graphs are exported with a static input shape, so a size
-            // change means a different asset. We keep the current session and
-            // report that no rebuild happened rather than silently feeding a
-            // mismatched tensor.
-            return { ok: false, rebuilt: false, reason: "model input shape is static" };
+            return {
+                ok: false,
+                changed: false,
+                reason: `model ${this.model?.key} has a static ${this.framePipeline.inputSize} input shape`
+            };
         }
-        return { ok: true, rebuilt: false };
+
+        this.framePipeline.setInputSize(inputSize);
+        return { ok: true, changed: true };
     }
 
     describe() {

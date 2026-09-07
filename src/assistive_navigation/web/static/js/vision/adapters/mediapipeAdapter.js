@@ -34,6 +34,23 @@ export class MediaPipeDetectorAdapter {
         this._detector = null;
         this._raw = [];
         this.inferenceCount = 0;
+
+        /**
+         * MediaPipe's VIDEO mode requires strictly increasing timestamps and
+         * throws on every subsequent call once one goes backwards. Warm-up and
+         * live inference used two different clocks (`Date.now()` at ~1.7e12 and
+         * `performance.now()` at ~1e4), so the first live frame went backwards by
+         * a billion milliseconds and the adapter never recovered. One owned
+         * counter removes the possibility.
+         */
+        this._timestamp = 0;
+    }
+
+    /** Next strictly-increasing timestamp, in MediaPipe's millisecond units. */
+    _nextTimestamp(hint) {
+        const candidate = Number.isFinite(hint) ? Math.round(hint) : 0;
+        this._timestamp = Math.max(this._timestamp + 1, candidate);
+        return this._timestamp;
     }
 
     async init() {
@@ -81,8 +98,7 @@ export class MediaPipeDetectorAdapter {
         if (!srcW || !srcH) return { detections: [], latencyMs: 0 };
 
         const t0 = performance.now();
-        // MediaPipe requires strictly increasing timestamps in VIDEO mode.
-        const result = this._detector.detectForVideo(source, Math.max(1, Math.round(timestamp)));
+        const result = this._detector.detectForVideo(source, this._nextTimestamp(timestamp));
         const latencyMs = performance.now() - t0;
 
         const raw = this._raw;
@@ -139,7 +155,7 @@ export class MediaPipeDetectorAdapter {
         for (let i = 0; i < passes; i += 1) {
             const t0 = performance.now();
             try {
-                const result = this._detector.detectForVideo(canvas, Date.now() + i);
+                const result = this._detector.detectForVideo(canvas, this._nextTimestamp(performance.now()));
                 latencies.push(performance.now() - t0);
                 if (result) producedOutput = true;
             } catch (err) {

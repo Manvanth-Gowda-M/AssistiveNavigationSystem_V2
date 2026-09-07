@@ -25,6 +25,7 @@
 
 import { QualityMode, buildDeviceProfile, resolveProfile } from "./config/deviceProfiles.js";
 import { VisionConfig } from "./config/visionConfig.js";
+import { withTimeout } from "./utils/async.js";
 import { SpeechConfig, SpeechPriority } from "./config/speechConfig.js";
 
 import { CameraManager } from "./camera/cameraManager.js";
@@ -60,6 +61,30 @@ import { ScenarioRunnerUI } from "./ui/scenarioRunner.js";
 
 /** How often the luminance-derived analysis stages run, in inference cycles. */
 const ANALYSIS_EVERY_N_INFERENCES = 1;
+
+/**
+ * Hard ceiling on the whole startup sequence.
+ *
+ * Individual steps are bounded too, but this is the backstop that guarantees the
+ * user is never left looking at "Initialising" with no explanation.
+ */
+const BOOTSTRAP_TIMEOUT_MS = 120000;
+
+/**
+ * Report a startup step to the on-page trace installed by `bootGuard.js`.
+ *
+ * Optional by design: the app must not depend on the diagnostic being present,
+ * and the diagnostic must not depend on the app having loaded.
+ */
+function trace(name, status = "info", detail = "") {
+    try {
+        window.__vaBoot?.step(name, status, detail);
+    } catch { /* diagnostics must never break startup */ }
+    const line = detail ? `${name} — ${detail}` : name;
+    if (status === "fail") console.error(`[startup] ${line}`);
+    else if (status === "warn") console.warn(`[startup] ${line}`);
+    else console.info(`[startup] ${line}`);
+}
 
 class NavigationApp {
     constructor() {
@@ -162,46 +187,87 @@ class NavigationApp {
         this._setState(UiState.INITIALIZING);
         this.controls.setStartEnabled(false, "Vision system is still starting");
         this.statusView.setProgress({ ratio: 0, label: "Profiling device…" });
+        trace("App constructed", "ok");
 
         this._installLifecycleHandlers();
 
         try {
-            const { capabilities, tier, profile } = await buildDeviceProfile();
-            this.capabilities = capabilities;
-            this.tier = tier;
-            this.profile = profile;
-            this.demo.markStage(StartupStage.DEVICE_PROFILE, true);
-            this.refinement.enabled = profile.allowSegmentation;
-            if (!profile.allowSegmentation) {
-                this.refinement.disabledReason = `disabled for ${tier} device profile`;
-            }
-
-            this.pipeline = new FramePipeline({ inputSize: profile.inputSize });
-            this.scheduler = new FrameScheduler(VisionConfig.scheduler, profile);
-            this.inference = new InferenceClient({
-                capabilities,
-                profile,
-                framePipeline: this.pipeline,
-                onEvent: (name, detail) => this._onInferenceEvent(name, detail)
-            });
-
-            this._installRecovery();
-
-            this.statusView.setProgress({ ratio: 0.15, label: "Preparing vision model…" });
-            const ready = await this._prepareDetector();
-            if (!ready) return;
-
-            this.demo.markStage(StartupStage.WARMUP, true);
-            this.demo.markStage(StartupStage.HEALTH_CHECK, true);
-
-            this._setState(UiState.VISION_READY);
-            this.statusView.hideProgress();
-            this.controls.setStartEnabled(true);
-            this.speech.speakSystem(SpeechConfig.phrases.SYSTEM_READY, SpeechPriority.SYSTEM);
+            await withTimeout(this._bootstrapSteps(), BOOTSTRAP_TIMEOUT_MS, "startup");
         } catch (error) {
+            const message = String(error?.message || error);
+            trace("Startup aborted", "fail", message);
+            window.__vaBoot?.fail(message);
             console.error("[app] Startup failed:", error);
-            this._enterErrorState(String(error?.message || error));
+            this._enterErrorState(message);
         }
+    }
+
+    async _bootstrapSteps() {
+        /* ---------------------------------------------------- device profile */
+
+        trace("Profiling device", "info");
+        const { capabilities, tier, profile } = await buildDeviceProfile();
+        this.capabilities = capabilities;
+        this.tier = tier;
+        this.profile = profile;
+        this.demo.markStage(StartupStage.DEVICE_PROFILE, true);
+
+        trace("Device profiled", "ok",
+            `${tier} tier · ${profile.mode} · ${capabilities.hardwareConcurrency} cores`
+            + ` · webgpu=${capabilities.hasWebGpu} · simd=${capabilities.hasWasmSimd}`
+            + ` · threads=${capabilities.hasWasmThreads} · moduleWorker=${capabilities.hasWorker}`);
+
+        if (capabilities.webGpuProbeNote) {
+            trace("WebGPU probe", "warn", capabilities.webGpuProbeNote);
+        }
+        if (!capabilities.hasWorker) {
+            trace("Module workers unavailable", "warn",
+                "ONNX Runtime cannot be used; falling back to a main-thread detector.");
+        }
+        if (!capabilities.hasOffscreenCanvas2d) {
+            trace("OffscreenCanvas 2D unavailable", "warn",
+                "Using a detached canvas for frame preprocessing instead.");
+        }
+
+        this.refinement.enabled = profile.allowSegmentation;
+        if (!profile.allowSegmentation) {
+            this.refinement.disabledReason = `disabled for ${tier} device profile`;
+        }
+
+        /* ------------------------------------------------------- subsystems */
+
+        this.pipeline = new FramePipeline({ inputSize: profile.inputSize });
+        if (!this.pipeline.ready) {
+            throw new Error("Could not create a 2D drawing context for frame preprocessing");
+        }
+        this.scheduler = new FrameScheduler(VisionConfig.scheduler, profile);
+        this.inference = new InferenceClient({
+            capabilities,
+            profile,
+            framePipeline: this.pipeline,
+            onEvent: (name, detail) => this._onInferenceEvent(name, detail)
+        });
+        this._installRecovery();
+        trace("Pipeline built", "ok",
+            `input ${this.pipeline.inputSize}px · plan: ${this.inference.plan.map((p) => p.id).join(" → ")}`);
+
+        /* --------------------------------------------------------- detector */
+
+        this.statusView.setProgress({ ratio: 0.15, label: "Preparing vision model…" });
+        const ready = await this._prepareDetector();
+        if (!ready) return;
+
+        this.demo.markStage(StartupStage.WARMUP, true);
+        this.demo.markStage(StartupStage.HEALTH_CHECK, true);
+
+        this._setState(UiState.VISION_READY);
+        this.statusView.hideProgress();
+        this.controls.setStartEnabled(true);
+        this.speech.speakSystem(SpeechConfig.phrases.SYSTEM_READY, SpeechPriority.SYSTEM);
+
+        window.__vaBoot?.done(
+            `${this.inference.model.label} on ${this.inference.backendLabel}`
+        );
     }
 
     async _prepareDetector() {
@@ -209,11 +275,19 @@ class NavigationApp {
         const result = await this.inference.initialize();
 
         if (!result.ok) {
+            // Every rejection reason is surfaced. Without this the user sees only
+            // "Vision error" and has no way to tell a blocked CDN from a broken
+            // GPU driver.
+            for (const attempt of result.attempts || []) {
+                trace(`Rejected ${attempt.modelLabel || attempt.modelKey}`, "fail",
+                    `${attempt.backendLabel || attempt.backendId}: ${attempt.reason}`);
+            }
             const summary = (result.attempts || [])
                 .map((a) => `${a.backendId}/${a.modelKey}: ${a.reason}`)
                 .join(" · ");
             console.error("[app] No detector could be prepared.", result.attempts);
             this.degradation.degradeTo(DegradationLevel.UNRELIABLE, "no detector passed the warm-up gate");
+            window.__vaBoot?.fail(summary || "no detector available");
             this._enterErrorState(summary || "no detector available");
             return false;
         }
@@ -225,13 +299,20 @@ class NavigationApp {
         this.health.markWorkerStatus(this.inference.adapter?.kind === "worker" ? "running" : "main-thread");
         this.demo.markStage(StartupStage.MODEL, true);
 
+        // Rejected candidates are still worth reporting: knowing that WebGPU was
+        // tried and failed its warm-up gate is useful, not noise.
+        for (const attempt of result.attempts || []) {
+            if (attempt.accepted) continue;
+            trace(`Rejected ${attempt.modelLabel || attempt.modelKey}`, "warn",
+                `${attempt.backendLabel || attempt.backendId}: ${attempt.reason}`);
+        }
+
         // The warm-up gate has already run inside initialize(); record the result.
         const warm = result.warmup;
-        console.info(
-            `[app] Detector ready: ${this.inference.model.label} on ${this.inference.backendLabel}`,
-            `first pass ${warm?.firstPassMs} ms, steady state ${warm?.steadyStateMs} ms`,
-            result.initInfo?.fromCache ? "(from cache)" : "(downloaded)"
-        );
+        trace("Detector ready", "ok",
+            `${this.inference.model.label} on ${this.inference.backendLabel}`
+            + ` · ${result.initInfo?.fromCache ? "from cache" : "downloaded"}`
+            + ` · warm-up first ${warm?.firstPassMs} ms, steady ${warm?.steadyStateMs} ms`);
         return true;
     }
 
@@ -299,15 +380,22 @@ class NavigationApp {
         this.statusView.setProgress({ ratio: 0.6, label: "Starting camera…" });
 
         try {
-            await this.camera.start();
+            trace("Starting camera", "info");
+            const result = await this.camera.start();
             this.demo.markStage(StartupStage.CAMERA, true);
             this._applyGeometry(this.camera.geometry);
+            trace("Camera started", "ok",
+                `${result.strategy || "reused"} · ${this.camera.describe().resolution} · facing ${this.camera.facing}`);
 
             if (this.camera.facing === "user") {
-                console.warn("[app] Using a user-facing camera; the scene is behind the user.");
+                trace("Front camera in use", "warn",
+                    "The scene behind the user is not the path ahead; guidance will be wrong.");
                 this.statusView.announceStatus("Warning: front camera in use. Guidance will not reflect the path ahead.");
             }
         } catch (error) {
+            const message = String(error?.message || error);
+            trace("Camera unavailable", "fail", this.camera.lastError || message);
+            window.__vaBoot?.show();
             console.error("[app] Camera unavailable:", error);
             this.statusView.hideProgress();
             this._setState(UiState.VISION_ERROR, this.camera.lastError || "camera unavailable");
@@ -702,7 +790,8 @@ class NavigationApp {
             refinementEnabled: this.refinement.enabled,
             inferenceFps: metrics.inferenceFps,
             trackingStability: stability,
-            perceptionUsable: !this.quality.requiresStop
+            perceptionUsable: !this.quality.requiresStop,
+            completedInferences: metrics.completed
         });
 
         this.degradation.apply(evaluation);
@@ -717,8 +806,17 @@ class NavigationApp {
 
     _onDegradationChange(level, detail) {
         console.warn(`[app] Degradation level ${level}: ${detail.reason}`);
+        trace(`Degraded to level ${level}`, level >= DegradationLevel.DETECTOR_ONLY ? "warn" : "info", detail.reason);
 
         if (level === DegradationLevel.UNRELIABLE) {
+            // Only a genuinely broken detector ends the session. Environmental
+            // problems - darkness, motion blur, a featureless wall - are handled
+            // at level 3 and recover on their own, so they must never land here.
+            if (this.inference?.ready && this.health.totalInferences > 0) {
+                console.warn("[app] Ignoring level 4 while the detector is still producing results.");
+                this.degradation.restoreTo(DegradationLevel.DETECTOR_ONLY, "detector still alive");
+                return;
+            }
             this._enterErrorState(detail.reason);
             return;
         }
@@ -728,6 +826,12 @@ class NavigationApp {
     }
 
     _enterErrorState(reason) {
+        // Bring the startup trace back so the reason is visible, not just a
+        // one-line status pill.
+        try {
+            window.__vaBoot?.show();
+        } catch { /* diagnostics are optional */ }
+
         this._stopLoop();
         this.watchdog?.stop();
         this.isAssisting = false;
@@ -763,34 +867,82 @@ class NavigationApp {
     _onInferenceEvent(name, detail) {
         switch (name) {
             case "model-progress":
-                if (detail.stage === "download" && detail.total) {
-                    this.statusView.setProgress({
-                        ratio: 0.15 + 0.5 * (detail.ratio || 0),
-                        label: `Downloading model… ${Math.round((detail.ratio || 0) * 100)}%`
-                    });
-                } else if (detail.stage === "cache-hit") {
-                    this.statusView.setProgress({ ratio: 0.6, label: "Model loaded from cache" });
-                }
+                this._reportModelProgress(detail);
                 break;
             case "selection-attempt":
+                if (detail.stage === "init") {
+                    trace(`Trying ${detail.modelLabel}`, "info", detail.backendLabel);
+                }
                 this.statusView.setProgress({
                     ratio: null,
                     label: `${detail.stage === "warmup" ? "Warming up" : "Loading"} ${detail.modelLabel}…`
                 });
                 break;
             case "selection-result":
-                if (!detail.accepted) {
-                    console.info(`[app] Rejected ${detail.modelKey} on ${detail.backendId}: ${detail.reason}`);
+                // Traced as it happens, not batched at the end. If selection stalls
+                // or the overall budget runs out, the reasons gathered so far are
+                // still on screen - which is the whole point of the trace.
+                if (detail.accepted) {
+                    trace(`Accepted ${detail.modelLabel}`, "ok",
+                        `${detail.backendLabel} · steady p95 ${detail.p95} ms · first pass ${detail.firstPassMs} ms`);
+                } else {
+                    trace(`Rejected ${detail.modelLabel || detail.modelKey}`, "warn",
+                        `${detail.backendLabel || detail.backendId}: ${detail.reason}`);
                 }
                 break;
             case "worker-crash":
+                trace("Worker crashed", "fail", detail.message || detail.reason || "");
                 this.health.markWorkerStatus("crashed");
                 this._handleStall({ reason: "worker-crash", ...detail });
                 break;
             case "worker-log":
                 if (detail.level === "warn" || detail.level === "error") {
-                    console.warn(`[worker] ${detail.message}`, detail.detail || "");
+                    trace(detail.message, "warn", detail.detail || "");
+                } else if (detail.message) {
+                    trace(detail.message, "ok", detail.detail || "");
                 }
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Turn worker progress into both a progress bar and a trace entry.
+     *
+     * Download progress deliberately updates the bar only: a trace line per chunk
+     * would bury everything else.
+     */
+    _reportModelProgress(detail) {
+        switch (detail.stage) {
+            case "worker-runtime":
+                trace("Loading inference runtime", "info", "ONNX Runtime Web");
+                this.statusView.setProgress({ ratio: null, label: "Loading inference runtime…" });
+                break;
+            case "worker-weights":
+                this.statusView.setProgress({ ratio: 0.2, label: "Fetching model weights…" });
+                break;
+            case "worker-session":
+                trace("Building inference session", "info");
+                this.statusView.setProgress({ ratio: 0.7, label: "Building inference session…" });
+                break;
+            case "cache-hit":
+                trace("Model loaded from cache", "ok");
+                this.statusView.setProgress({ ratio: 0.6, label: "Model loaded from cache" });
+                break;
+            case "download":
+                if (detail.total) {
+                    const percent = Math.round((detail.ratio || 0) * 100);
+                    this.statusView.setProgress({
+                        ratio: 0.2 + 0.45 * (detail.ratio || 0),
+                        label: `Downloading model… ${percent}% of ${(detail.total / 1e6).toFixed(1)} MB`
+                    });
+                } else {
+                    this.statusView.setProgress({ ratio: null, label: "Downloading model…" });
+                }
+                break;
+            case "persist":
+                trace("Caching model", "ok", "will load from cache next time");
                 break;
             default:
                 break;

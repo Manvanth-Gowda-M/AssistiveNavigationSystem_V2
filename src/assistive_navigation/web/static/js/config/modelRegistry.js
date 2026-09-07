@@ -120,10 +120,18 @@ export const MODEL_REGISTRY = Object.freeze([
         classNames: COCO_CLASSES,
         maxDetections: 300,
         supportedBackends: ["webgpu", "wasm-simd"],
-        expectedLatencyMs: { "webgpu": 26, "wasm-simd": 220, "wasm": 620 },
+        /**
+         * Ranked behind YOLO11n fp32 on WebGPU on purpose. The attention blocks in
+         * this graph make shader compilation very expensive - measured at over 20
+         * seconds of session-build time in headless Chromium - and a candidate that
+         * takes half a minute to become ready is a poor first thing to try even if
+         * its steady-state latency is excellent. The benchmark screen still
+         * measures it properly.
+         */
+        expectedLatencyMs: { "webgpu": 32, "wasm-simd": 220, "wasm": 620 },
         accuracyProfile: "best",
         memoryProfile: "medium",
-        notes: "Attention blocks may fall back to CPU kernels on some WebGPU drivers - benchmark before trusting."
+        notes: "End-to-end head, but attention blocks make WebGPU session build slow. Benchmark before trusting."
     },
     {
         key: "efficientdet-lite0-int8",

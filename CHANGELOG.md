@@ -5,6 +5,99 @@ Format: [Phase] Date — Description
 
 ---
 
+## [Realtime] 2026-09-07 — Fix startup failure and add browser smoke testing
+
+The client shipped in the previous entry did not start. Root causes, all found by
+adding an on-page startup trace and then driving the real page in a real browser:
+
+### Startup was fatally broken
+
+- **`voiceManager.js` read `SpeechConfig.defaults.rate`.** That key was renamed to
+  `voice` in the rewrite. Its constructor threw, and because it is constructed
+  inside `SpeechManager` inside `NavigationApp`, the entire application failed to
+  construct — blank screen, no status change, nothing on a phone to diagnose it
+  with. Every module imported cleanly, so nothing caught it: the throw was at
+  *construction*, not at import.
+- **`speechQueue.js` read `SpeechConfig.Priority.DIRECTION_CHANGE`**, also renamed.
+  That silently evaluated to `undefined`, and since every comparison against
+  `undefined` is false, utterances appended instead of sorting by priority. The
+  queue looked healthy and had quietly stopped prioritising.
+
+### The detector could never be selected
+
+- **The warm-up gate judged p95 across all passes, including the first.** With four
+  samples, p95 *is* the maximum, which is always the cold pass that pays for shader
+  compilation and kernel selection. Every backend was rejected for its one-time
+  startup cost on every device. Now steady state (passes 2..n) is judged against
+  the latency budget and the cold pass has its own, far larger budget.
+- **The preallocated-output optimisation returned unwritten zero buffers.** Passing
+  a pre-made tensor via ORT's `fetches` left it untouched, so every pass after the
+  first produced all zeros. The sanity check caught it and rejected every ONNX
+  candidate — and live detection would have been silently empty too. Removed;
+  correctness beats saving a fixed 705 KB allocation.
+- **An all-zero output is legitimate for an end-to-end head.** YOLO26n emits
+  post-NMS detections, so zero detections is zero bytes of signal, not a fault.
+  The sanity check is now head-aware.
+- **Profile input size could contradict the model's static input shape.** A LOW-tier
+  device, or FAST mode on any tier, asked for 256 while every exported ONNX graph
+  is 320. The model now dictates the tensor size; the profile only ranks candidates.
+
+### Hangs with no visible cause
+
+- `navigator.gpu.requestAdapter()` was awaited unbounded. On some Android GPU
+  drivers it never settles, leaving the app stuck on "Profiling device". Now
+  bounded, as is every await on the startup path, with an overall ceiling.
+- The ONNX Runtime import was unbounded and single-sourced. Now bounded per
+  attempt, with a same-origin path tried first and two CDN mirrors after it.
+- MediaPipe warmed up on `Date.now()` and ran live on `performance.now()`. The
+  first live frame went backwards by a billion milliseconds, and MediaPipe rejects
+  every call after a non-monotonic timestamp. The adapter now owns its clock.
+- `OffscreenCanvas` was assumed to provide a 2D context. Safari shipped the
+  constructor first, where `getContext("2d")` returns null and the pipeline would
+  capture nothing, silently. The context is now verified with an element fallback.
+
+### Behaviour that was too aggressive
+
+- **Poor frame quality drove the system to level 4** (`UNRELIABLE`), which enters
+  the error state and demands a manual retry. Pointing the camera at a blank wall
+  should not require restarting the vision system. Quality now caps at level 3:
+  directions are withheld, the user is told, and it recovers by itself.
+- **Degradation flapped during the first second**, because the inference-rate check
+  ran before the rolling FPS window had filled. Each downgrade spoke "Reduced
+  accuracy." — three times in a ten-second run. The rate check now waits for a
+  measurable sample.
+- **The ground-freeness estimator read floor markings as obstacles.** Tiling grout,
+  painted lines, expansion joints and shadow edges are thin bands with floor
+  visible above them; an obstacle occludes everything above its base. A run-length
+  requirement now distinguishes the two. Measured on a synthetic floor with
+  scrolling seams: clearance 0.75 before, 1.0 after.
+- The boot watchdog measured total elapsed time and fired mid-startup while a
+  24-second WebGPU session build was legitimately running. It now measures lack of
+  progress.
+
+### Added
+
+- `js/bootGuard.js` — a classic, ES5, zero-dependency script loaded before the
+  module graph. It renders a startup trace on the page, captures uncaught errors,
+  unhandled rejections and failed asset loads, watchdogs a stalled startup and
+  offers a copyable report. A phone has no console; this is the console.
+- `tools/smoke_browser.mjs` — drives the real page in a real Chromium with a
+  canvas-backed synthetic camera and asserts that startup completes, a detector is
+  selected and warmed up, inference produces results, no buffers leak, quality is
+  usable, the path reads clear and no guidance is spoken on a clear path. Every
+  bug above was found by this or by the trace it prints on failure.
+- `tests/js/configContract.test.mjs` — verifies every config property the source
+  reads actually exists, and that every subsystem can be **constructed**, not
+  merely imported. That gap is what let the `defaults`/`voice` rename ship.
+- `tests/js/startup.test.mjs` — pins the timeout utilities, capability probes,
+  MediaPipe clock, boot-guard constraints and per-step tracing.
+
+Suite is now 262 checks plus the browser smoke test. Verified on Chromium:
+YOLO11n/YOLO26n on the ONNX Runtime WebGPU path, 13–16 inference FPS, p95
+130–180 ms, no failures, no leaks.
+
+---
+
 ## [Realtime] 2026-09-07 — Browser client re-engineered for stable walking guidance
 
 Scope: the web client under `src/assistive_navigation/web/static/` only. The

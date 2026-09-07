@@ -179,10 +179,28 @@ export const VisionConfig = {
     /* ------------------------------------------------------------ warm-up */
 
     warmup: {
-        /** Inference passes run before the user is told the system is ready. */
-        passes: 4,
-        /** A warm-up pass slower than this fails the health check. */
+        /**
+     * Inference passes run before the user is told the system is ready.
+     *
+     * Five, not four: the first pass is excluded from the latency verdict because
+     * it pays for one-time compilation, so five passes leaves four samples to
+     * actually judge steady state with.
+     */
+        passes: 5,
+        /**
+         * Steady-state budget, applied to passes 2..n. A backend slower than this
+         * per inference cannot hold a usable frame rate.
+         */
         maxAcceptableLatencyMs: 700,
+        /**
+         * Cold-start budget for the first pass alone. Deliberately generous:
+         * WebGPU shader compilation for a detector graph legitimately takes
+         * seconds, and rejecting a backend for that would leave fast devices
+         * running the slow fallback.
+         */
+        maxFirstPassMs: 12000,
+        /** Ceiling on one (backend, model) attempt, end to end. */
+        candidateTimeoutMs: 30000,
         /** Overall warm-up budget. */
         timeoutMs: 20000
     }

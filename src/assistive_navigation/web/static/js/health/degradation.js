@@ -26,6 +26,12 @@
  * cannot see.
  */
 
+/**
+ * Completed inferences required before the inference-rate check is trusted.
+ * Below this the rolling FPS window is still filling and reads artificially low.
+ */
+const MIN_SAMPLES_FOR_RATE = 12;
+
 export const DegradationLevel = Object.freeze({
     FULL: 1,
     NO_REFINEMENT: 2,
@@ -126,6 +132,8 @@ export class DegradationController {
      * @param {number} conditions.inferenceFps
      * @param {number} conditions.trackingStability mean track stability 0..1
      * @param {boolean} conditions.perceptionUsable frame quality verdict
+     * @param {number} [conditions.completedInferences] guards against judging a
+     *        rate before enough samples exist to measure one
      * @returns {{level:number, reason:string}}
      */
     static evaluate(conditions) {
@@ -134,22 +142,52 @@ export class DegradationController {
             refinementEnabled,
             inferenceFps,
             trackingStability,
-            perceptionUsable
+            perceptionUsable,
+            completedInferences = Infinity
         } = conditions;
 
+        // Level 4 is reserved for the system being broken. A detector that is not
+        // producing results qualifies; a dark room does not.
         if (!detectorWorking) {
             return { level: DegradationLevel.UNRELIABLE, reason: "detector not producing results" };
         }
+
+        /**
+         * Poor frame quality is an *environmental* condition, not a system
+         * failure, and conflating the two was a real defect: pointing the camera
+         * at a blank wall drove the app to level 4, which enters the error state
+         * and demands a manual retry. Walking past a dark doorway must not require
+         * the user to restart the vision system.
+         *
+         * So unusable frames cap at level 3: the detector keeps running, no
+         * directions are offered, the user is told visibility is poor, and the
+         * system recovers by itself the moment the view improves.
+         */
         if (!perceptionUsable) {
-            return { level: DegradationLevel.UNRELIABLE, reason: "frame quality unusable" };
+            return { level: DegradationLevel.DETECTOR_ONLY, reason: "frame quality unusable" };
         }
+
+        /**
+         * The rate check needs enough samples to be a rate.
+         *
+         * `inferenceFps` is measured over a short rolling window, so for the first
+         * second of a session it legitimately reads 1-3 FPS while the window fills.
+         * Judging it immediately downgraded to level 3 and back on almost every
+         * start, and each downgrade spoke "Reduced accuracy." - three times in a
+         * ten-second run. Waiting for a real measurement removes the flapping
+         * without weakening the check.
+         */
+        const rateIsMeasurable = completedInferences >= MIN_SAMPLES_FOR_RATE;
 
         // Below roughly 4 inference FPS, consecutive frames are 250 ms apart. A
         // person walking at 1.4 m/s moves 35 cm between frames, which breaks
         // both IoU association and any velocity estimate. Tracking output at
         // that rate is not evidence, so we stop acting on it.
-        if (inferenceFps > 0 && inferenceFps < 4) {
-            return { level: DegradationLevel.DETECTOR_ONLY, reason: `inference rate ${inferenceFps.toFixed(1)} FPS too low for tracking` };
+        if (rateIsMeasurable && inferenceFps > 0 && inferenceFps < 4) {
+            return {
+                level: DegradationLevel.DETECTOR_ONLY,
+                reason: `inference rate ${inferenceFps.toFixed(1)} FPS too low for tracking`
+            };
         }
         if (trackingStability !== null && trackingStability < 0.35) {
             return { level: DegradationLevel.DETECTOR_ONLY, reason: "track association unstable" };

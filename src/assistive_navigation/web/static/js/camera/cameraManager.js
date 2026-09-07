@@ -15,6 +15,12 @@
 
 import { VisionConfig } from "../config/visionConfig.js";
 
+/**
+ * Smallest frame dimension we will accept as a real stream. Below this the
+ * source is almost certainly a placeholder frame that has not been replaced yet.
+ */
+const MIN_PLAUSIBLE_DIMENSION = 64;
+
 export const CameraFacing = Object.freeze({
     ENVIRONMENT: "environment",
     USER: "user",
@@ -164,8 +170,19 @@ export class CameraManager {
 
             const timer = setTimeout(() => done("timeout"), timeoutMs);
 
+            /**
+             * Require *plausible* dimensions, not merely non-zero ones.
+             *
+             * Some pipelines briefly report a placeholder frame of a few pixels
+             * before the real stream starts. Accepting that fixes the coordinate
+             * mapper to a 2x2 frame, and every box mapped through it is nonsense.
+             * The timeout below is the backstop if a stream really is tiny.
+             */
             const check = () => {
-                if (this.video.videoWidth > 0 && this.video.videoHeight > 0) done("dimensions");
+                if (this.video.videoWidth >= MIN_PLAUSIBLE_DIMENSION
+                    && this.video.videoHeight >= MIN_PLAUSIBLE_DIMENSION) {
+                    done("dimensions");
+                }
             };
 
             this.video.addEventListener("loadedmetadata", check, { once: true });

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Inference worker (ES module worker).
  *
  * Owns ONNX Runtime Web, the model session, and output decoding. The main
@@ -30,6 +30,14 @@ import {
 import { loadModelBytes } from "../vision/modelCache.js";
 import { DecodeFamily } from "../config/modelRegistry.js";
 import { navigationClassIndices } from "../config/classCatalog.js";
+import { withTimeout } from "../utils/async.js";
+
+/** Budget for importing the ONNX Runtime bundle from one source. */
+const ORT_IMPORT_TIMEOUT_MS = 12000;
+/** Budget for fetching the model weights. */
+const MODEL_FETCH_TIMEOUT_MS = 90000;
+/** Budget for building the inference session once the bytes are in hand. */
+const SESSION_CREATE_TIMEOUT_MS = 30000;
 
 /* ------------------------------------------------------------------ state */
 
@@ -49,9 +57,7 @@ let detectionConfig = {
 
 const decoder = new DetectionDecoder();
 
-/** Reusable output tensor, installed after the first run reveals the dims. */
-let reusableOutput = null;
-let reusableOutputFailed = false;
+/** Output dims, recorded on the first run for the diagnostics panel. */
 let outputDims = null;
 let inferenceInProgress = false;
 let inferenceCount = 0;
@@ -68,35 +74,88 @@ function now() {
 }
 
 /**
- * Load ONNX Runtime Web. `ort.all` carries every execution provider, which is
- * what we want because the backend is chosen at runtime, not at build time.
- * A second candidate URL covers a CDN layout change.
+ * Load ONNX Runtime Web.
+ *
+ * `ort.all` carries every execution provider, which is what we want because the
+ * backend is chosen at runtime rather than at build time. Several candidates are
+ * tried because this is the one hard dependency on a third party: a CDN outage,
+ * a blocked domain or a layout change here would otherwise take the whole app
+ * down.
+ *
+ * Every import is bounded. A dynamic import against an unreachable host can hang
+ * for the browser's own connect timeout, which is far longer than a user will
+ * wait staring at "Initialising".
  */
 async function loadOrt(baseUrl, version) {
     if (ort) return ort;
 
-    const candidates = [
-        `${baseUrl}onnxruntime-web@${version}/dist/ort.all.min.mjs`,
-        `${baseUrl}onnxruntime-web@${version}/dist/ort.min.mjs`
-    ];
+    const bundles = ["ort.all.min.mjs", "ort.min.mjs", "ort.webgpu.min.mjs", "ort.wasm.min.mjs"];
+    const attempts = [];
 
-    let lastError = null;
-    for (const url of candidates) {
-        try {
-            const mod = await import(/* @vite-ignore */ url);
-            ort = mod.default && mod.default.InferenceSession ? mod.default : mod;
-            if (!ort?.InferenceSession) throw new Error("module has no InferenceSession");
-            ortSourceUrl = url;
-            // The .wasm/.mjs runtime artifacts sit beside the JS bundle.
-            ort.env.wasm.wasmPaths = `${baseUrl}onnxruntime-web@${version}/dist/`;
-            // Keep ORT quiet; we do our own reporting.
-            ort.env.logLevel = "error";
-            return ort;
-        } catch (err) {
-            lastError = err;
+    /**
+     * Same-origin copy first, if one has been vendored into `static/vendor/ort/`.
+     *
+     * When present this removes the only third-party runtime dependency the app
+     * has. When absent the import 404s in milliseconds against our own origin and
+     * we move on, so carrying this entry costs nothing.
+     */
+    const vendorBase = new URL("../../vendor/ort/", import.meta.url).href;
+    for (const bundle of bundles) {
+        attempts.push({
+            url: `${vendorBase}${bundle}`,
+            wasmPaths: vendorBase,
+            label: `self-hosted/${bundle}`,
+            optional: true
+        });
+    }
+
+    const mirrors = [
+        { base: baseUrl, label: "jsdelivr" },
+        { base: "https://unpkg.com/", label: "unpkg" }
+    ];
+    for (const mirror of mirrors) {
+        for (const bundle of bundles) {
+            attempts.push({
+                url: `${mirror.base}onnxruntime-web@${version}/dist/${bundle}`,
+                wasmPaths: `${mirror.base}onnxruntime-web@${version}/dist/`,
+                label: `${mirror.label}/${bundle}`
+            });
         }
     }
-    throw new Error(`Could not load onnxruntime-web: ${lastError?.message || lastError}`);
+
+    const failures = [];
+    for (const attempt of attempts) {
+        try {
+            const mod = await withTimeout(
+                import(/* @vite-ignore */ attempt.url),
+                ORT_IMPORT_TIMEOUT_MS,
+                `import ${attempt.label}`
+            );
+            const namespace = mod?.default?.InferenceSession ? mod.default : mod;
+            if (!namespace?.InferenceSession) throw new Error("module exposes no InferenceSession");
+
+            ort = namespace;
+            ortSourceUrl = attempt.url;
+            // The .wasm and .mjs runtime artifacts sit beside the JS bundle.
+            ort.env.wasm.wasmPaths = attempt.wasmPaths;
+            // Keep ORT quiet; we do our own reporting.
+            ort.env.logLevel = "error";
+            log("info", `ONNX Runtime loaded from ${attempt.label}`);
+            return ort;
+        } catch (err) {
+            const message = String(err?.message || err);
+            failures.push(`${attempt.label}: ${message}`);
+            // A missing vendored copy is the expected case, not a problem worth
+            // reporting to the user.
+            if (!attempt.optional) {
+                log("warn", `ONNX Runtime not available from ${attempt.label}`, message);
+            }
+        }
+    }
+
+    throw new Error(
+        `Could not load onnxruntime-web from any source. Tried ${attempts.length}: ${failures.join(" | ")}`
+    );
 }
 
 function disposeTensor(tensor) {
@@ -108,9 +167,6 @@ function disposeTensor(tensor) {
 }
 
 function releaseSession() {
-    disposeTensor(reusableOutput);
-    reusableOutput = null;
-    reusableOutputFailed = false;
     outputDims = null;
     if (session && typeof session.release === "function") {
         try {
@@ -146,21 +202,32 @@ async function handleInit(payload) {
     const indices = navigationClassIndices(model.classNames);
     allowedClassIds = new Set(indices);
 
+    self.postMessage({ type: "init-stage", stage: "runtime" });
     await loadOrt(ortBaseUrl, ortVersion);
     wasmConfig = configureOrtEnvironment(ort, backendId, capabilities || {});
 
+    self.postMessage({ type: "init-stage", stage: "weights" });
     const loadStarted = now();
-    const cacheResult = await loadModelBytes({
-        key: model.key,
-        url: modelUrl,
-        expectedBytes: model.approxBytes || 0,
-        allowCache: useCache,
-        onProgress: (p) => self.postMessage({ type: "model-progress", ...p })
-    });
+    const cacheResult = await withTimeout(
+        loadModelBytes({
+            key: model.key,
+            url: modelUrl,
+            expectedBytes: model.approxBytes || 0,
+            allowCache: useCache,
+            onProgress: (p) => self.postMessage({ type: "model-progress", ...p })
+        }),
+        MODEL_FETCH_TIMEOUT_MS,
+        `fetch ${model.key}`
+    );
     const fetchMs = Math.round(now() - loadStarted);
 
+    self.postMessage({ type: "init-stage", stage: "session" });
     const options = sessionOptionsFor(backendId);
-    session = await ort.InferenceSession.create(new Uint8Array(cacheResult.bytes), options);
+    session = await withTimeout(
+        ort.InferenceSession.create(new Uint8Array(cacheResult.bytes), options),
+        SESSION_CREATE_TIMEOUT_MS,
+        `create ${backendId} session`
+    );
 
     inferenceCount = 0;
     failureCount = 0;
@@ -200,40 +267,26 @@ function outputName() {
 /**
  * Run the session once.
  *
- * After the first run we know the output dims and switch to a preallocated
- * output tensor so ORT stops allocating a fresh multi-hundred-KB result buffer
- * on every inference.
+ * Deliberately lets ONNX Runtime allocate the output.
+ *
+ * An earlier version passed a preallocated output tensor via `fetches` to avoid a
+ * per-inference allocation. It did not work: the tensor came back untouched, so
+ * every pass after the first returned all zeros. The warm-up sanity check caught
+ * it - correctly - and rejected every ONNX candidate on every backend, which left
+ * the app permanently on the slow main-thread fallback. Detection would have been
+ * silently empty in the live pipeline too.
+ *
+ * The allocation this was trying to save is a fixed 705 KB per inference for the
+ * YOLO11n head. That is the same order as the frame's `ImageData` and is
+ * comfortably within what the GC handles; producing correct output is not
+ * negotiable. If it is ever worth revisiting, it needs a test that asserts the
+ * second and third inferences are non-zero.
  */
 async function runSession(inputTensor) {
     const outName = outputName();
-    const feeds = { [inputName()]: inputTensor };
-
-    if (reusableOutput && !reusableOutputFailed) {
-        try {
-            const results = await session.run(feeds, { [outName]: reusableOutput });
-            return results[outName] || reusableOutput;
-        } catch (err) {
-            // Some execution providers refuse preallocated outputs. Fall back
-            // permanently rather than retrying every frame.
-            reusableOutputFailed = true;
-            disposeTensor(reusableOutput);
-            reusableOutput = null;
-            log("warn", "Preallocated output rejected; using runtime-allocated outputs", String(err?.message || err));
-        }
-    }
-
-    const results = await session.run(feeds);
+    const results = await session.run({ [inputName()]: inputTensor });
     const out = results[outName] || results[session.outputNames[0]];
-
-    if (!reusableOutput && !reusableOutputFailed && out?.dims && out.type === "float32") {
-        outputDims = out.dims.slice();
-        const count = outputDims.reduce((a, b) => a * b, 1);
-        try {
-            reusableOutput = new ort.Tensor("float32", new Float32Array(count), outputDims);
-        } catch {
-            reusableOutputFailed = true;
-        }
-    }
+    if (out?.dims && !outputDims) outputDims = out.dims.slice();
     return out;
 }
 
@@ -300,7 +353,7 @@ async function handleInfer(payload) {
         const detections = decodeOutput(output, letterbox);
         const decodeMs = now() - decodeStart;
 
-        if (output !== reusableOutput) disposeTensor(output);
+        disposeTensor(output);
 
         inferenceCount += 1;
         failureCount = 0;
@@ -376,14 +429,18 @@ async function handleWarmup(payload) {
             latencies.push(now() - t0);
             if (output?.data?.length) {
                 producedOutput = true;
-                const sanity = checkTensorSanity(output.data);
+                // An end-to-end head legitimately emits all zeros when it finds
+                // nothing, which is the expected result for a synthetic frame.
+                const sanity = checkTensorSanity(output.data, {
+                    expectNonZero: modelSpec.decode !== DecodeFamily.YOLO_E2E
+                });
                 outputSane = sanity.sane;
                 if (!sanity.sane) lastError = sanity.reason;
                 // Exercise the decoder too: a decode-time exception during a
                 // live walk is exactly what warm-up should catch.
                 decodeOutput(output, letterbox);
             }
-            if (output !== reusableOutput) disposeTensor(output);
+            disposeTensor(output);
         } catch (err) {
             lastError = String(err?.message || err);
             break;
@@ -440,7 +497,6 @@ self.onmessage = async (event) => {
                     backendId,
                     modelKey: modelSpec?.key || null,
                     wasmConfig,
-                    reusableOutput: Boolean(reusableOutput),
                     outputDims
                 });
                 break;

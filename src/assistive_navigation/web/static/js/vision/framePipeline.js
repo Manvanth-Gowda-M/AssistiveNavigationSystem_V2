@@ -84,20 +84,38 @@ class TensorBufferPool {
 }
 
 /**
- * Create the smallest canvas that works in this environment.
- * OffscreenCanvas avoids any layout/compositing involvement; a detached
- * `<canvas>` is the fallback for older Safari.
+ * Create a canvas and its 2D context together.
+ *
+ * `OffscreenCanvas` is preferred because it avoids any layout or compositing
+ * involvement. But Safari shipped the constructor before 2D context support, so
+ * `typeof OffscreenCanvas !== "undefined"` is not sufficient - on those versions
+ * `getContext("2d")` returns null and the pipeline would silently capture nothing.
+ * The context is therefore verified here, with a detached `<canvas>` as the
+ * fallback.
+ *
+ * @returns {{canvas:object, ctx:object, kind:string}|null}
  */
-function createCanvas(width, height) {
+function createDrawSurface(width, height) {
+    const options = { willReadFrequently: true, alpha: false };
+
     if (typeof OffscreenCanvas !== "undefined") {
-        return new OffscreenCanvas(width, height);
+        try {
+            const canvas = new OffscreenCanvas(width, height);
+            const ctx = canvas.getContext("2d", options);
+            if (ctx) return { canvas, ctx, kind: "offscreen" };
+        } catch { /* fall through to the element path */ }
     }
+
     if (typeof document !== "undefined") {
-        const c = document.createElement("canvas");
-        c.width = width;
-        c.height = height;
-        return c;
+        try {
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d", options);
+            if (ctx) return { canvas, ctx, kind: "element" };
+        } catch { /* no drawing surface available */ }
     }
+
     return null;
 }
 
@@ -111,18 +129,17 @@ export class FramePipeline {
         this.padValue = VisionConfig.inference.padValue;
 
         /** Inference canvas: exactly the model input size, letterboxed. */
-        this._canvas = createCanvas(inputSize, inputSize);
-        this._ctx = this._canvas
-            ? this._canvas.getContext("2d", { willReadFrequently: true, alpha: false })
-            : null;
+        const inference = createDrawSurface(inputSize, inputSize);
+        this._canvas = inference?.canvas || null;
+        this._ctx = inference?.ctx || null;
+        this.surfaceKind = inference?.kind || "none";
 
         /** Analysis thumbnail canvas, shared by quality and scene-change stages. */
         const qw = VisionConfig.quality.sampleWidth;
         const qh = VisionConfig.quality.sampleHeight;
-        this._thumbCanvas = createCanvas(qw, qh);
-        this._thumbCtx = this._thumbCanvas
-            ? this._thumbCanvas.getContext("2d", { willReadFrequently: true, alpha: false })
-            : null;
+        const thumb = createDrawSurface(qw, qh);
+        this._thumbCanvas = thumb?.canvas || null;
+        this._thumbCtx = thumb?.ctx || null;
         this._thumbWidth = qw;
         this._thumbHeight = qh;
         /** Persistent luminance plane for the analysis stages. */
@@ -281,6 +298,7 @@ export class FramePipeline {
     stats() {
         return {
             inputSize: this.inputSize,
+            surfaceKind: this.surfaceKind,
             framesCaptured: this.framesCaptured,
             capturesSkippedNoBuffer: this.capturesSkippedNoBuffer,
             pool: this._pool.stats(),

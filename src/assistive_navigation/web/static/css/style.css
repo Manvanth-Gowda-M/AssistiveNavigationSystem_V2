@@ -468,3 +468,98 @@ body.demo-mode .action-card {
         max-height: 44vh;
     }
 }
+
+/* ------------------------------------------------------------ boot panel */
+
+/*
+ * The startup trace. Visible from first paint, hidden once the vision system
+ * reports ready. It is styled to be readable on a phone in daylight, because
+ * that is where it will be read.
+ */
+.boot-panel {
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.boot-panel[hidden] {
+    display: none;
+}
+
+.boot-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.boot-title {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.boot-summary {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.boot-log {
+    margin: 0 0 10px;
+    padding: 0;
+    list-style: none;
+    max-height: 240px;
+    overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem;
+    line-height: 1.5;
+}
+
+.boot-entry {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 2px 8px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.boot-time {
+    color: var(--text-muted);
+    text-align: right;
+}
+
+.boot-name {
+    font-weight: 700;
+}
+
+/* The detail spans both columns so long messages - which is most of the useful
+   ones - are not squeezed into half the width. */
+.boot-detail {
+    grid-column: 1 / -1;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+.boot-ok .boot-name { color: var(--ok); }
+.boot-warn .boot-name { color: var(--warn); }
+.boot-fail .boot-name { color: var(--danger); }
+.boot-fail { background: rgba(255, 71, 87, 0.08); }
+
+.boot-report-area {
+    width: 100%;
+    min-height: 120px;
+    margin-top: 8px;
+    padding: 8px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.68rem;
+}

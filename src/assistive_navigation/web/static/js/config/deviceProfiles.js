@@ -12,6 +12,10 @@
  */
 
 import { VisionConfig } from "./visionConfig.js";
+import { softTimeout } from "../utils/async.js";
+
+/** Budget for the optional WebGPU adapter probe. */
+const WEBGPU_PROBE_TIMEOUT_MS = 2500;
 
 /** Coarse hardware tiers. */
 export const DeviceTier = Object.freeze({
@@ -180,6 +184,48 @@ export function detectWasmSimd() {
 }
 
 /**
+ * True when `OffscreenCanvas` can actually give us a 2D context.
+ *
+ * Safari shipped the constructor before 2D context support, so
+ * `typeof OffscreenCanvas !== "undefined"` is not a usable signal. The frame
+ * pipeline falls back to a detached `<canvas>` when this is false.
+ */
+export function probeOffscreenCanvas2d() {
+    if (typeof OffscreenCanvas === "undefined") return false;
+    try {
+        return Boolean(new OffscreenCanvas(2, 2).getContext("2d"));
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * True when a module worker can be constructed. Module workers are the transport
+ * for ONNX Runtime; without them the ORT path is unusable and the plan must go
+ * straight to the main-thread runtimes.
+ */
+export function probeModuleWorker() {
+    if (typeof Worker === "undefined") return false;
+    if (typeof URL === "undefined" || typeof Blob === "undefined") return false;
+    let url = null;
+    try {
+        // An empty module body is enough: construction is what can throw.
+        url = URL.createObjectURL(new Blob([";"], { type: "text/javascript" }));
+        const probe = new Worker(url, { type: "module" });
+        probe.terminate();
+        return true;
+    } catch {
+        return false;
+    } finally {
+        if (url) {
+            try {
+                URL.revokeObjectURL(url);
+            } catch { /* ignore */ }
+        }
+    }
+}
+
+/**
  * WASM threads need SharedArrayBuffer, which needs cross-origin isolation.
  * GitHub Pages cannot send COOP/COEP, so this is expected to be false on the
  * public deployment. We check rather than assume (requirement 7).
@@ -206,23 +252,37 @@ export async function probeDeviceCapabilities() {
 
     let hasWebGpu = false;
     let webGpuAdapterInfo = null;
+    let webGpuProbeNote = null;
+
     if (nav.gpu && typeof nav.gpu.requestAdapter === "function") {
-        try {
-            const adapter = await nav.gpu.requestAdapter();
-            hasWebGpu = Boolean(adapter);
-            if (adapter) {
-                // `requestAdapterInfo` is not universally available.
-                if (adapter.info) {
-                    webGpuAdapterInfo = { vendor: adapter.info.vendor, architecture: adapter.info.architecture };
-                } else if (typeof adapter.requestAdapterInfo === "function") {
-                    try {
-                        const info = await adapter.requestAdapterInfo();
-                        webGpuAdapterInfo = { vendor: info.vendor, architecture: info.architecture };
-                    } catch { /* optional */ }
+        // `requestAdapter()` is bounded because on some Android GPU drivers it
+        // never settles at all. An unbounded await here leaves the whole app
+        // stuck on "Profiling device", which is the worst possible outcome for a
+        // probe whose answer is optional.
+        const adapter = await softTimeout(
+            (async () => {
+                try {
+                    return await nav.gpu.requestAdapter();
+                } catch {
+                    return null;
                 }
+            })(),
+            WEBGPU_PROBE_TIMEOUT_MS,
+            "timeout"
+        );
+
+        if (adapter === "timeout") {
+            webGpuProbeNote = `requestAdapter did not respond within ${WEBGPU_PROBE_TIMEOUT_MS} ms; treating WebGPU as unavailable`;
+        } else if (adapter) {
+            hasWebGpu = true;
+            // `requestAdapterInfo` is not universally available, and is also
+            // bounded for the same reason.
+            if (adapter.info) {
+                webGpuAdapterInfo = { vendor: adapter.info.vendor, architecture: adapter.info.architecture };
+            } else if (typeof adapter.requestAdapterInfo === "function") {
+                const info = await softTimeout(adapter.requestAdapterInfo(), 1000, null);
+                if (info) webGpuAdapterInfo = { vendor: info.vendor, architecture: info.architecture };
             }
-        } catch {
-            hasWebGpu = false;
         }
     }
 
@@ -234,12 +294,23 @@ export async function probeDeviceCapabilities() {
         deviceMemoryGb: Number.isFinite(nav.deviceMemory) ? nav.deviceMemory : null,
         hasWebGpu,
         webGpuAdapterInfo,
+        webGpuProbeNote,
         hasWasmSimd: detectWasmSimd(),
+        /**
+         * OffscreenCanvas exists on older Safari but without a 2D context, so
+         * its mere presence is not enough. The frame pipeline needs the context,
+         * and finding out at capture time means silently detecting nothing.
+         */
+        hasOffscreenCanvas2d: probeOffscreenCanvas2d(),
         hasWasmThreads: detectWasmThreads(),
         crossOriginIsolated: Boolean(globalScope.crossOriginIsolated),
         hasOffscreenCanvas: typeof OffscreenCanvas !== "undefined",
         hasImageBitmap: typeof createImageBitmap === "function",
-        hasWorker: typeof Worker !== "undefined",
+        // The ORT path needs a *module* worker specifically, so that is what is
+        // probed. `typeof Worker` alone would put ORT in the plan on browsers
+        // that cannot load it.
+        hasWorker: probeModuleWorker(),
+        hasClassicWorker: typeof Worker !== "undefined",
         hasPerformanceMemory: Boolean(typeof performance !== "undefined" && performance.memory),
         screenPixels,
         devicePixelRatio: dpr,

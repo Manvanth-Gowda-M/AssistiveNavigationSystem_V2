@@ -85,8 +85,28 @@ python -m http.server 8000 --directory src/assistive_navigation/web/static
 Run its test suite (Node 20+, no dependencies to install):
 
 ```bash
-npm test              # 224 checks
+npm test              # 262 checks, no install required
 ```
+
+Drive the real page in a real browser (needs a local Chrome or Edge):
+
+```bash
+npm i --no-save puppeteer-core
+npm run serve         # in one terminal
+npm run smoke         # in another; add --trace to print the startup trace
+```
+
+The smoke test asserts that startup actually completes, a detector is selected and
+warmed up, inference produces results, no tensor buffers leak, and a clear path
+produces silence. Unit tests cannot answer "does it start in a browser", and that
+is the question that matters most.
+
+### If it does not start
+
+The page carries its own diagnostics. A **Startup** panel is visible from the first
+paint, lists every step, captures uncaught errors and failed asset loads, and has a
+**Copy report** button. If startup stalls or fails, that panel says where and why —
+no devtools needed, which matters on a phone.
 
 See [`docs/benchmarking.md`](docs/benchmarking.md) for choosing a detector per
 device and [`docs/field_testing.md`](docs/field_testing.md) for the walking test

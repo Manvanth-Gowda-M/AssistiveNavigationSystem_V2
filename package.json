@@ -7,9 +7,14 @@
     "test": "node --test \"tests/js/*.test.mjs\"",
     "test:watch": "node --test --watch \"tests/js/*.test.mjs\"",
     "test:coverage": "node --test --experimental-test-coverage \"tests/js/*.test.mjs\"",
+    "serve": "python -m http.server 8731 --directory src/assistive_navigation/web/static",
+    "smoke": "node tools/smoke_browser.mjs",
+    "smoke:trace": "node tools/smoke_browser.mjs --trace",
+    "smoke:headful": "node tools/smoke_browser.mjs --headful",
     "fixtures": "python tools/make_decode_fixtures.py",
     "models": "python scripts/export_web_models.py"
   },
+  "//smoke": "The smoke test drives the real page in a real browser and needs `npm i --no-save puppeteer-core` plus a local Chrome or Edge. It is deliberately not a saved dependency: the unit suite must stay installable with nothing at all.",
   "engines": {
     "node": ">=20"
   }

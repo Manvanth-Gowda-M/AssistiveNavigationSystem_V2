@@ -125,60 +125,103 @@ export function percentile(values, p) {
 /**
  * Decide whether a warmed-up backend is fit for live use.
  *
- * Three independent gates:
+ * Four independent gates:
  *   1. It produced output at all (`producedOutput`).
  *   2. Its output was structurally sane (`outputSane`) - a WebGPU driver that
  *      silently emits zeros or NaNs is the classic "available but broken" case.
- *   3. Its p95 latency is inside budget. p95 rather than mean, because a
- *      backend that is fast on average but spikes to 500 ms every tenth frame
- *      makes guidance feel broken.
+ *   3. Its **steady-state** p95 latency is inside budget.
+ *   4. Its first pass, which is a separate and much larger budget, completed.
+ *
+ * The steady-state/first-pass split matters and getting it wrong broke startup
+ * completely. The first warm-up pass pays for shader compilation, kernel
+ * selection and memory-arena growth; on WebGPU that is routinely hundreds of
+ * milliseconds to several seconds. An earlier version took p95 across *all*
+ * passes, and with only four samples p95 *is* the maximum - which is always the
+ * first pass. Every backend was therefore rejected for its one-time startup cost,
+ * on every device, and the app never selected a detector at all.
+ *
+ * Steady state is what predicts the walking experience. First-pass cost predicts
+ * how long the user waits before starting, which is a different question with a
+ * different, far more generous budget.
  *
  * @param {object} result
- * @param {number[]} result.latencies
+ * @param {number[]} result.latencies in call order; the first is the cold pass
  * @param {boolean} result.producedOutput
  * @param {boolean} result.outputSane
- * @param {number} maxAcceptableLatencyMs
- * @returns {{accepted:boolean, reason:string, p50:number, p95:number, mean:number}}
+ * @param {number} maxAcceptableLatencyMs steady-state budget
+ * @param {number} [maxFirstPassMs] cold-start budget
+ * @returns {{accepted:boolean, reason:string, p50:number, p95:number, mean:number, firstPassMs:number}}
  */
-export function evaluateWarmup({ latencies = [], producedOutput = false, outputSane = false }, maxAcceptableLatencyMs) {
-    const p50 = Math.round(percentile(latencies, 50));
-    const p95 = Math.round(percentile(latencies, 95));
-    const mean = latencies.length
-        ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
-        : 0;
+export function evaluateWarmup(
+    { latencies = [], producedOutput = false, outputSane = false },
+    maxAcceptableLatencyMs,
+    maxFirstPassMs = 12000
+) {
+    const firstPassMs = latencies.length ? Math.round(latencies[0]) : 0;
+    // Judge everything after the cold pass.
+    const steady = latencies.length > 1 ? latencies.slice(1) : latencies;
+    const p50 = Math.round(percentile(steady, 50));
+    const p95 = Math.round(percentile(steady, 95));
+    const mean = steady.length ? Math.round(steady.reduce((a, b) => a + b, 0) / steady.length) : 0;
+    const summary = { p50, p95, mean, firstPassMs };
 
     if (!producedOutput) {
-        return { accepted: false, reason: "no output produced during warm-up", p50, p95, mean };
+        return { accepted: false, reason: "no output produced during warm-up", ...summary };
     }
     if (!outputSane) {
-        return { accepted: false, reason: "warm-up output failed the sanity check", p50, p95, mean };
+        return { accepted: false, reason: "warm-up output failed the sanity check", ...summary };
     }
-    if (latencies.length === 0) {
-        return { accepted: false, reason: "no latency samples", p50, p95, mean };
+    if (latencies.length < 2) {
+        return {
+            accepted: false,
+            reason: `only ${latencies.length} warm-up pass(es); need at least 2 to measure steady state`,
+            ...summary
+        };
+    }
+    if (firstPassMs > maxFirstPassMs) {
+        return {
+            accepted: false,
+            reason: `first pass ${firstPassMs} ms exceeds the ${maxFirstPassMs} ms cold-start budget`,
+            ...summary
+        };
     }
     if (p95 > maxAcceptableLatencyMs) {
         return {
             accepted: false,
-            reason: `p95 ${p95} ms exceeds the ${maxAcceptableLatencyMs} ms warm-up budget`,
-            p50,
-            p95,
-            mean
+            reason: `steady-state p95 ${p95} ms exceeds the ${maxAcceptableLatencyMs} ms budget`
+                + ` (first pass was ${firstPassMs} ms and is excluded)`,
+            ...summary
         };
     }
-    return { accepted: true, reason: "passed", p50, p95, mean };
+    return { accepted: true, reason: "passed", ...summary };
 }
 
 /**
  * Structural sanity check on a detector's raw output tensor.
  *
- * We are not checking accuracy here - a warm-up frame is synthetic and should
- * legitimately find nothing. We are checking that the numbers are numbers.
+ * We are not checking accuracy - a warm-up frame is synthetic and should
+ * legitimately find nothing. We are checking that the numbers are numbers, and
+ * that the backend actually wrote something.
+ *
+ * The all-zero rule is **head-dependent**, and getting that wrong rejected every
+ * ONNX candidate on every backend:
+ *
+ *   - A raw YOLO head, [1, 4+numClasses, anchors], always carries anchor-derived
+ *     box values in rows 0-3 regardless of what is in the image. All zeros means
+ *     the backend did not write to the buffer, which is a genuine fault.
+ *
+ *   - An end-to-end head, [1, maxDet, 6], emits post-NMS detections. Zero
+ *     detections is the correct output for a featureless warm-up frame, so all
+ *     zeros is expected and must not be treated as a fault.
  *
  * @param {ArrayLike<number>} data
- * @returns {{sane:boolean, reason:string}}
+ * @param {{expectNonZero?:boolean}} [opts]
+ * @returns {{sane:boolean, reason:string, nonZeroRatio:number}}
  */
-export function checkTensorSanity(data) {
-    if (!data || data.length === 0) return { sane: false, reason: "empty output tensor" };
+export function checkTensorSanity(data, { expectNonZero = true } = {}) {
+    if (!data || data.length === 0) {
+        return { sane: false, reason: "empty output tensor", nonZeroRatio: 0 };
+    }
 
     // Sample rather than scan: these tensors have >100k elements and this runs
     // on the critical path to "ready".
@@ -188,17 +231,21 @@ export function checkTensorSanity(data) {
 
     for (let i = 0; i < data.length; i += stride) {
         const v = data[i];
-        if (!Number.isFinite(v)) return { sane: false, reason: "output contains NaN or Infinity" };
+        if (!Number.isFinite(v)) {
+            return { sane: false, reason: "output contains NaN or Infinity", nonZeroRatio: 0 };
+        }
         if (v !== 0) nonZero += 1;
         samples += 1;
     }
 
-    if (samples === 0) return { sane: false, reason: "no samples read" };
-    // An all-zero tensor from a real detector head is not physically plausible:
-    // box regression rows always carry anchor-derived values.
-    if (nonZero === 0) return { sane: false, reason: "output is entirely zero" };
+    if (samples === 0) return { sane: false, reason: "no samples read", nonZeroRatio: 0 };
 
-    return { sane: true, reason: "ok" };
+    const nonZeroRatio = nonZero / samples;
+    if (expectNonZero && nonZero === 0) {
+        return { sane: false, reason: "output is entirely zero", nonZeroRatio };
+    }
+
+    return { sane: true, reason: "ok", nonZeroRatio };
 }
 
 /**

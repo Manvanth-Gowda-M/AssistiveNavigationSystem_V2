@@ -14,6 +14,15 @@
 
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/debug.css">
+
+    <!--
+      Classic script, loaded first and deliberately not a module. It installs the
+      error capture and startup trace that make a failed or hung startup visible
+      on the page. If the module graph below fails to load, this is the only thing
+      that will still be running - and on a phone there is no console to fall back
+      on.
+    -->
+    <script src="./js/bootGuard.js"></script>
 </head>
 <body>
 
@@ -46,6 +55,22 @@
             <progress id="startup-progress" class="startup-progress" max="100" aria-labelledby="startup-progress-label"></progress>
             <p id="startup-progress-label" class="startup-progress-label">Starting…</p>
         </div>
+
+        <!--
+          Startup trace. Visible from the first paint and hidden automatically once
+          the vision system reports ready, so a hang or a failure is always
+          explained rather than leaving the user staring at a spinner.
+        -->
+        <section id="boot-panel" class="boot-panel" aria-label="Startup diagnostics">
+            <div class="boot-header">
+                <h2 class="boot-title">Startup</h2>
+                <output id="boot-summary" class="boot-summary">Starting up…</output>
+            </div>
+            <ol id="boot-log" class="boot-log"></ol>
+            <button id="btn-copy-boot-report" class="btn-small btn-secondary" type="button">
+                Copy report
+            </button>
+        </section>
 
         <!-- Primary output. Large, high contrast, text-first. -->
         <section class="action-card" id="main-action-card" aria-labelledby="main-action-headline">
