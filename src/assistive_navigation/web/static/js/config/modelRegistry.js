@@ -230,14 +230,25 @@ export function rankCandidates({ backendId, preferQuantized = true, allowCrossOr
         return true;
     });
 
+    /**
+     * Quantisation preference is a property of the *backend*, not of the device
+     * tier.
+     *
+     * On WebGPU, fp32 weights are the right choice: the GPU does the work and
+     * quantised weights buy nothing. On any CPU path, fp32 is both several times
+     * slower and several times larger — YOLO11n is 10.6 MB fp32 against 2.9 MB
+     * uint8. A high-tier device with no working WebGPU was therefore downloading
+     * 10 MB to run the slower option, which added most of a minute to first load.
+     */
+    const quantisedPreferred = backendId === "webgpu" ? false : (preferQuantized || true);
+
     return usable.slice().sort((a, b) => {
         // Last-resort candidates always sort last.
         if (Boolean(a.isLastResort) !== Boolean(b.isLastResort)) return a.isLastResort ? 1 : -1;
 
         const aQuant = a.quantization !== "fp32";
         const bQuant = b.quantization !== "fp32";
-        if (preferQuantized && aQuant !== bQuant) return aQuant ? -1 : 1;
-        if (!preferQuantized && aQuant !== bQuant) return aQuant ? 1 : -1;
+        if (aQuant !== bQuant) return quantisedPreferred === aQuant ? -1 : 1;
 
         const aLat = (a.expectedLatencyMs && a.expectedLatencyMs[backendId]) ?? Number.MAX_SAFE_INTEGER;
         const bLat = (b.expectedLatencyMs && b.expectedLatencyMs[backendId]) ?? Number.MAX_SAFE_INTEGER;

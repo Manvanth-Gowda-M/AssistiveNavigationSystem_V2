@@ -316,3 +316,64 @@ test("the frame pipeline verifies its 2D context rather than assuming one", () =
         "must not return an OffscreenCanvas without checking getContext"
     );
 });
+
+/* ------------------------------------------------- candidate ordering / cost */
+
+test("quantised weights are preferred on every CPU backend", async () => {
+    const { rankCandidates } = await import(
+        "../../src/assistive_navigation/web/static/js/config/modelRegistry.js"
+    );
+
+    // Regression guard. Quantisation preference used to follow the device tier, so
+    // a HIGH-tier phone with no working WebGPU downloaded 10.6 MB of fp32 weights
+    // to run them on the CPU - both slower and 3.5x larger than the uint8 build.
+    for (const backendId of ["wasm-simd", "wasm"]) {
+        for (const preferQuantized of [true, false]) {
+            const ranked = rankCandidates({ backendId, preferQuantized });
+            assert.notEqual(
+                ranked[0].quantization,
+                "fp32",
+                `${backendId} with preferQuantized=${preferQuantized} chose fp32 first`
+            );
+        }
+    }
+});
+
+test("fp32 weights are preferred on WebGPU regardless of tier preference", async () => {
+    const { rankCandidates } = await import(
+        "../../src/assistive_navigation/web/static/js/config/modelRegistry.js"
+    );
+
+    for (const preferQuantized of [true, false]) {
+        const ranked = rankCandidates({ backendId: "webgpu", preferQuantized });
+        assert.equal(ranked[0].quantization, "fp32",
+            `WebGPU with preferQuantized=${preferQuantized} chose quantised weights`);
+    }
+});
+
+test("a timed-out candidate abandons its whole backend", () => {
+    const source = fs.readFileSync(path.join(CLIENT_ROOT, "js/vision/inferenceClient.js"), "utf8");
+
+    // A hang during session build or warm-up indicts the runtime, not the model.
+    // Trying a second model on the same backend costs another full budget: two
+    // 30-second stalls before reaching a working path was measured on the live
+    // deployment.
+    assert.match(source, /timedOut/, "timeouts must be distinguishable from other failures");
+    assert.match(source, /err\?\.name === "TimeoutError"/, "must detect the timeout specifically");
+    assert.match(source, /attempt\.timedOut[\s\S]{0,600}?break;/,
+        "a timed-out attempt must break out of the candidate loop for that backend");
+});
+
+test("the per-candidate budget leaves room for several attempts", async () => {
+    const { VisionConfig: config } = await import(
+        "../../src/assistive_navigation/web/static/js/config/visionConfig.js"
+    );
+    const appSource = fs.readFileSync(path.join(CLIENT_ROOT, "js/app.js"), "utf8");
+    const overall = Number(appSource.match(/BOOTSTRAP_TIMEOUT_MS = (\d+)/)[1]);
+
+    assert.ok(
+        config.warmup.candidateTimeoutMs * 4 <= overall,
+        `a ${config.warmup.candidateTimeoutMs} ms candidate budget leaves fewer than four attempts`
+        + ` inside the ${overall} ms startup ceiling`
+    );
+});

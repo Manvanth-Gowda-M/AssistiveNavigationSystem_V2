@@ -890,6 +890,10 @@ class NavigationApp {
                         `${detail.backendLabel || detail.backendId}: ${detail.reason}`);
                 }
                 break;
+            case "backend-abandoned":
+                trace(`Abandoned ${detail.backendLabel}`, "warn",
+                    "timed out; moving to the next backend rather than retrying the same runtime");
+                break;
             case "worker-crash":
                 trace("Worker crashed", "fail", detail.message || detail.reason || "");
                 this.health.markWorkerStatus("crashed");

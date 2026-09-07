@@ -199,8 +199,12 @@ export const VisionConfig = {
          * running the slow fallback.
          */
         maxFirstPassMs: 12000,
-        /** Ceiling on one (backend, model) attempt, end to end. */
-        candidateTimeoutMs: 30000,
+        /**
+         * Ceiling on one (backend, model) attempt, end to end: download, session
+         * build and warm-up. A timeout abandons the whole backend rather than
+         * trying another model on it, since a hang here indicts the runtime.
+         */
+        candidateTimeoutMs: 22000,
         /** Overall warm-up budget. */
         timeoutMs: 20000
     }

@@ -268,6 +268,7 @@ export class InferenceClient {
                             modelLabel: model.label,
                             candidate: model.candidate,
                             accepted: false,
+                            timedOut: err?.name === "TimeoutError",
                             reason: String(err?.message || err)
                         }
                     };
@@ -277,6 +278,25 @@ export class InferenceClient {
                 const { accepted, attempt } = outcome;
                 this.attempts.push(attempt);
                 this.onEvent("selection-result", attempt);
+
+                /**
+                 * A timeout indicts the backend, not the model.
+                 *
+                 * If a session build or warm-up hangs long enough to hit the
+                 * budget, trying a second model on the same backend hangs the same
+                 * way and costs another full budget. On a device with a broken
+                 * WebGPU stack that was two 30-second stalls before reaching the
+                 * WASM path — most of a minute of the user staring at a progress
+                 * bar. Abandon the backend and move on.
+                 */
+                if (!accepted && attempt.timedOut) {
+                    this.onEvent("backend-abandoned", {
+                        backendId: backendEntry.id,
+                        backendLabel: BACKEND_LABELS[backendEntry.id] || backendEntry.id,
+                        reason: attempt.reason
+                    });
+                    break;
+                }
 
                 if (accepted) {
                     this.planIndex = this.plan.findIndex((p) => p.id === backendEntry.id);
