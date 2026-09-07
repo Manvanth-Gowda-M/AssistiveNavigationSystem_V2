@@ -79,3 +79,12 @@ coverage.xml
 
 # Windows-specific
 desktop.ini
+
+# Node (the browser client has no dependencies, but keep this defensive)
+node_modules/
+npm-debug.log*
+
+# Exported browser model assets are intentionally COMMITTED: GitHub Pages serves
+# them directly and the app must work without a third-party model CDN.
+# Only the root models/ directory (training checkpoints) is ignored, above.
+!src/assistive_navigation/web/static/models/*.onnx

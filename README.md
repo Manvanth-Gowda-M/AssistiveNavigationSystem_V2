@@ -32,11 +32,65 @@ model download. No custom hardware, no cloud, no GPU required.
 
 ## 1. Project overview
 
-The system captures webcam frames and runs an 11-stage pipeline —
+This repository contains **two related systems**:
+
+| | Desktop pipeline | Browser client |
+|---|---|---|
+| Where it runs | Python, on a laptop with a webcam | A phone browser, entirely on-device |
+| Entry point | `python -m assistive_navigation` | `src/assistive_navigation/web/static/index.html` |
+| Purpose | Offline research pipeline and evaluation harness | Real-time walking-guidance prototype |
+| Docs | [`docs/architecture.md`](docs/architecture.md) | [`docs/realtime_pipeline.md`](docs/realtime_pipeline.md) |
+
+The **desktop pipeline** captures webcam frames and runs an 11-stage pipeline —
 detection → filtering → tracking → depth → fusion → direction → priority →
 temporal confirmation → alerting → speech — to announce the most
 navigation-relevant nearby object as a short spoken phrase. Everything runs
 locally on the CPU.
+
+The **browser client** is a separate, mobile-first implementation built for
+walking. It runs a nano detector in a Web Worker via ONNX Runtime Web (WebGPU
+where it measurably helps, WASM SIMD otherwise), tracks objects over time,
+estimates walkable free space rather than just listing objects, scores the left,
+centre and right paths, and speaks a short instruction only when the situation
+materially changes. It has no build step and no runtime dependencies; it is
+served as plain ES modules.
+
+### Browser client at a glance
+
+```
+camera → frame scheduler → preprocessor → detector (worker)
+       → tracking → free space → corridor → risk → path scores
+       → decision → speech
+```
+
+- **No frame queue.** If inference is busy the frame is dropped, never buffered.
+  Latency matters more than processing every frame.
+- **Adaptive rate.** The inference rate is steered by measured p95 latency, and
+  sheds load when sustained performance degrades.
+- **Nothing accepted on availability alone.** Every backend and model is warmed
+  up, measured and judged on the actual device before it is used.
+- **Silence is a feature.** A clear path produces no speech at all.
+- **Fails loudly, not silently.** A watchdog, a five-step recovery ladder and a
+  four-level degradation ladder mean the system either works, recovers, or says
+  *"Vision system unavailable. Please stop."*
+
+Run the browser client locally:
+
+```bash
+python -m http.server 8000 --directory src/assistive_navigation/web/static
+# then open https://<lan-ip>:8000 on the phone, or http://localhost:8000 on the
+# development machine. The camera requires a secure context: HTTPS or localhost.
+```
+
+Run its test suite (Node 20+, no dependencies to install):
+
+```bash
+npm test              # 224 checks
+```
+
+See [`docs/benchmarking.md`](docs/benchmarking.md) for choosing a detector per
+device and [`docs/field_testing.md`](docs/field_testing.md) for the walking test
+procedures and acceptance criteria.
 
 ## 2. Problem statement
 
@@ -152,7 +206,11 @@ Reproducing results: [`docs/reproducibility.md`](docs/reproducibility.md).
 
 | Document | Contents |
 |---|---|
-| [`docs/architecture.md`](docs/architecture.md) | Architecture, data flow, per-stage explanations (items 4–18) |
+| [`docs/architecture.md`](docs/architecture.md) | Desktop pipeline architecture, data flow, per-stage explanations (items 4–18) |
+| [`docs/realtime_pipeline.md`](docs/realtime_pipeline.md) | **Browser client** architecture, module map, allocation policy, backend selection, decision and speech behaviour |
+| [`docs/realtime_architecture_audit.md`](docs/realtime_architecture_audit.md) | Audit of the pre-upgrade browser client: what was broken and why |
+| [`docs/benchmarking.md`](docs/benchmarking.md) | On-device model/backend benchmark procedure and scoring |
+| [`docs/field_testing.md`](docs/field_testing.md) | Ten-station test course, 5- and 10-minute walking tests, failure injection, acceptance criteria |
 | [`docs/installation.md`](docs/installation.md) | Clean-machine setup, requirements, model acquisition, configuration |
 | [`docs/usage.md`](docs/usage.md) | Running the app, debug/headless, tests, evaluation, hardware eval |
 | [`docs/reproducibility.md`](docs/reproducibility.md) | Reproduce Phase 4/15/16 + all checklists |

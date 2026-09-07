@@ -5,6 +5,127 @@ Format: [Phase] Date — Description
 
 ---
 
+## [Realtime] 2026-09-07 — Browser client re-engineered for stable walking guidance
+
+Scope: the web client under `src/assistive_navigation/web/static/` only. The
+Python desktop pipeline, its configuration and all published evaluation results
+are untouched.
+
+Audit of the previous client is in `docs/realtime_architecture_audit.md`.
+New reference documentation: `docs/realtime_pipeline.md`, `docs/benchmarking.md`,
+`docs/field_testing.md`.
+
+### Root causes fixed
+
+- **Inference blocked the UI.** The render loop awaited `detect()` inline. It now
+  re-schedules `requestAnimationFrame` first and fires inference without awaiting
+  it, with ONNX Runtime Web running in an ES-module Web Worker.
+- **The full-resolution preview was the inference input.** Inference now runs on a
+  dedicated letterboxed low-resolution stream from a reused `OffscreenCanvas`,
+  with pooled tensor buffers transferred to the worker and transferred back.
+  `VisionConfig.inputResolution` was previously declared but never referenced.
+- **Confirmation gating was effectively disabled** (`temporalConfirmFrames: 1`,
+  thresholds at 0.12–0.15). Thresholds raised to 0.30/0.38 with a genuine
+  three-frame confirmation gate, plus a separate emergency channel so smoothing
+  can never delay a STOP.
+- **The barrier detector manufactured obstacles.** `barrierDetector.js` declared a
+  frame-filling "wall" at 0.85 confidence whenever the image centre was
+  low-texture, which fired on plain floors, roads and sky and turned each one into
+  a false STOP. Removed and replaced with a ground-freeness estimator that finds
+  where the walkable floor actually ends.
+- **Failures were silent and permanent.** `detectFrame` caught every error and
+  returned the previous frame's detections forever. Added a health monitor,
+  timer-driven watchdog, five-step recovery ladder and four-level degradation
+  ladder. The system now either works, recovers, or says so.
+- **Hysteresis did not hold.** The old implementation only blocked a strictly
+  opposite direction and reset its own hold counter on every decision. Replaced
+  with dwell time, a 14-point switch margin, multi-frame confirmation and a
+  deterministic, evidence-based tie-break.
+- **Direction ignored whether the target side was safe.** Path scoring now scores
+  left, centre and right independently from free space and per-sector risk, and
+  a side containing a high-risk obstacle is never eligible.
+- **Free space was a bounding-box tally.** Replaced with a 24-column occupancy grid
+  carrying per-column free depth, ground-band weighting, shoulder-width passability
+  and optional refinement fused with `min` semantics.
+- **Speech was long and globally rate-limited.** Phrases are now short
+  instructions; suppression is keyed on action, scene signature and material risk
+  change; emergencies bypass cooldowns and interrupt mid-utterance; "Path clear."
+  is spoken once per obstruction episode.
+- **No model caching or warm-up.** Model bytes are cached in IndexedDB and warm-up
+  passes run before the user is told the system is ready.
+- **No coordinate mapping.** Added an explicit four-space mapper (model, camera,
+  display, navigation) that accounts for letterboxing, `object-fit` cropping,
+  rotation and mirroring, and reports per-object visibility after the crop.
+
+### Bugs found by the new tests
+
+- **NMS suppressed almost everything.** Candidate boxes were read through a shared
+  scratch array, so comparing box *i* against box *j* overwrote box *i*: every IoU
+  evaluated to 1 and every detection after the first of each class was silently
+  dropped. Found by cross-checking the browser decoder against an independent
+  NumPy postprocess on real ONNX output (`tests/js/decodeParity.test.mjs`).
+- **The corridor fed back into its own inputs.** Steering the corridor centre
+  towards the widest free-space gap shrank the sector on that side and inverted
+  the path scores, producing the left/right oscillation the upgrade was meant to
+  remove. The centre no longer moves; choosing a side is the decision engine's job.
+- **Out-of-bounds typed-array reuse produced NaN.** The ground-freeness estimator
+  reused a column-length `Int32Array` as pixel-width scratch; out-of-range writes
+  were silently dropped and reads returned `undefined`.
+- **`blurThreshold` was off by an order of magnitude** (0.020 against measured
+  values of ~0.0007 for a smeared frame and ~0.007 for a structured one), so every
+  frame read as motion-blurred. Recalibrated to 0.0025 against measurements.
+- **The speech rate window grew for the whole session**, because emergency and
+  path-status utterances reached `commit()` without passing the trimming branch.
+- **The emergency anti-stutter floor was keyed on exact text**, so a hazard whose
+  distance band wobbled alternated between two STOP phrasings and bypassed the
+  floor every frame — 62 utterances per minute in the simulated walk. Now keyed on
+  priority; measured at 22 per minute on a sequence that walks into an obstacle
+  every ten seconds.
+
+### Added
+
+- Model export: `scripts/export_web_models.py` produces YOLO11n and YOLO26n ONNX
+  at 320 with uint8 variants plus a manifest, self-hosted so the client has no
+  third-party model CDN dependency and works offline once cached.
+- Benchmark screen: measures each candidate on the actual device across six
+  operator-guided conditions and reports inference FPS, average and p95 latency,
+  heap, detections per frame, dropped frames and camera FPS with a verdict.
+- Diagnostics dashboard covering the detector, timing, perception, decision and
+  system state.
+- Demo mode with a start-up gate and the ten-station test course with observer
+  checklist.
+- Scenario replay running the same scripted situations as the automated suite,
+  on-device, with no camera involved.
+- Automated suite: 224 checks via `node --test`, covering decoding, coordinate
+  transforms, tracking, risk, path scoring, decisions, hysteresis, speech policy,
+  scheduling, quality, scene change, backend selection, degradation, recovery,
+  long-run stability and static integrity of the un-bundled client.
+- Decoder parity fixtures generated from real ONNX output
+  (`tools/make_decode_fixtures.py`).
+
+### Removed
+
+`vision/visionDetector.js`, `vision/temporalTracker.js`,
+`vision/barrierDetector.js`, `vision/detectionTypes.js`,
+`navigation/walkingCorridor.js`, `navigation/spatialAnalysis.js`,
+`navigation/sceneNarrative.js`, `navigation/stateMachine.js`,
+`ui/audioFirstUI.js`, `audio/speechEngine.js`, `camera/orientation.js`,
+`utils/geometry.js`, `utils/smoothing.js`, `utils/timing.js`.
+
+Retained: the camera constraint fallback ladder, `audio/voiceManager.js`,
+`audio/speechQueue.js`, and the TensorFlow.js COCO-SSD path as the guaranteed-load
+fallback detector.
+
+### Not yet verified
+
+On-device confirmation is outstanding. The machinery for camera responsiveness,
+model caching, backend fallback, worker recovery, rotation handling, thermal
+behaviour, the five- and ten-minute walking tests and cross-device degradation is
+implemented and unit-tested, but requires a physical smartphone. See
+`docs/field_testing.md` §9 for the item-by-item status.
+
+---
+
 ## [Packaging] 2026-09-04 — Fix `python -m assistive_navigation` startup
 
 Isolated packaging/installation follow-up on top of the published Phase 0–18

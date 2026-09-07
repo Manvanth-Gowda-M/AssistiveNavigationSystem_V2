@@ -1,65 +1,113 @@
 /**
- * Speech Engine & Natural Language Guidance Configuration
- * Contains prioritized phrase libraries, cooldowns, and speech synthesis parameters.
+ * Speech configuration.
+ *
+ * Two rules govern everything here:
+ *   - **Short.** Every phrase is an instruction, not a description. "Move
+ *     slightly left." not "Chair ahead on your left, move slightly left."
+ *     The user is walking; they need two words, not a sentence.
+ *   - **Silence is a feature.** The default output for a clear path is nothing
+ *     at all (requirement 37).
+ *
+ * Pure data. Importable in Node.
  */
 
+export const SpeechPriority = Object.freeze({
+    STOP: 1,
+    IMMEDIATE_DANGER: 2,
+    DIRECTION: 3,
+    CAUTION: 4,
+    OBJECT: 5,
+    PATH_STATUS: 6,
+    SYSTEM: 7
+});
+
 export const SpeechConfig = {
-    // Action Priorities (Lower number = Higher priority)
-    Priority: {
-        STOP: 1,
-        IMMEDIATE_COLLISION: 2,
-        HIGH_RISK_OBSTACLE: 3,
-        DIRECTION_CHANGE: 4,
-        CAUTION: 5,
-        OBJECT_DESCRIPTION: 6,
-        PATH_STATUS: 7
-    },
+    Priority: SpeechPriority,
 
-    // Speech Cooldowns (milliseconds)
     cooldowns: {
-        emergencyStopMs: 600,       // Emergency STOP bypasses standard cooldown
-        standardInstructionMs: 2400, // Wait time before repeating same direction
-        directionChangeMinMs: 900,  // Minimum gap between directional switches
-        pathClearMs: 5000,          // Periodic reassurance when path remains clear
-        lowVisibilityMs: 8000       // Warning for poor lighting or camera obstruction
+        /**
+         * Emergency speech ignores every other cooldown; this is the floor that
+         * stops a stuttering "Stop. Stop. Stop." while the hazard persists.
+         *
+         * 2 s rather than 1.2 s: the user needs one clear instruction and then
+         * time to act on it. Re-asserting a stop three times a second is not more
+         * safety, it is noise that buries the next real instruction.
+         */
+        emergencyMs: 2000,
+        /** Repeating the *same* instruction. Long, because repetition is noise. */
+        repeatSameMs: 3500,
+        /** Switching to a *different* instruction. */
+        changeActionMs: 1100,
+        /** Caution-level messages. */
+        cautionMs: 3000,
+        /** "Path clear." Announced once per obstruction episode anyway. */
+        pathStatusMs: 6000,
+        /** Visibility warnings. */
+        visibilityMs: 9000,
+        /** System/status messages. */
+        systemMs: 800
     },
 
-    // Deterministic Command Phrase Library (Short, Calm, Actionable)
+    /**
+     * A held instruction is re-spoken this often *only* while the situation is
+     * still live, so a user who missed it gets a second chance without being
+     * nagged.
+     */
+    reminderMs: 5000,
+
+    /** Risk change (0-100 points) that counts as a material change. */
+    materialRiskDelta: 18,
+
     phrases: {
         STOP: "Stop.",
-        STOP_VERY_CLOSE: "Stop. Obstacle very close.",
-        STOP_RAPID_APPROACH: "Stop. Obstacle approaching rapidly.",
-        STOP_BOTH_BLOCKED: "Stop. Path blocked.",
-        
+        STOP_BLOCKED: "Stop. Path blocked.",
+        STOP_VERY_NEAR: "Stop. Obstacle close.",
+        STOP_APPROACHING: "Stop. Object approaching.",
+        STOP_VEHICLE: "Stop. Vehicle.",
+        STOP_UNRELIABLE: "Please stop. Vision unreliable.",
+
         MOVE_LEFT: "Move left.",
         MOVE_SLIGHTLY_LEFT: "Move slightly left.",
         MOVE_RIGHT: "Move right.",
         MOVE_SLIGHTLY_RIGHT: "Move slightly right.",
-        
+
         OBSTACLE_AHEAD: "Obstacle ahead.",
         PERSON_AHEAD: "Person ahead.",
-        PERSON_CROSSING: "Person crossing ahead.",
-        VEHICLE_APPROACHING: "Stop. Vehicle approaching.",
-        
-        CAUTION_AHEAD: "Obstacle ahead. Use caution.",
+        PERSON_CROSSING: "Person crossing.",
+        VEHICLE_APPROACHING: "Vehicle approaching.",
+        CAUTION: "Obstacle ahead. Use caution.",
+        NARROW: "Narrow path.",
+
         PATH_CLEAR: "Path clear.",
-        
-        LOW_VISIBILITY: "Low visibility.",
-        CAMERA_BLOCKED: "Camera view blocked.",
-        
+
+        LOW_VISIBILITY: "Visibility is poor.",
+        CAMERA_BLOCKED: "Camera blocked.",
+
         SYSTEM_READY: "Vision assistance ready.",
         ASSISTANCE_STARTED: "Assistance started.",
-        ASSISTANCE_PAUSED: "Assistance paused.",
+        ASSISTANCE_PAUSED: "Paused.",
+        ASSISTANCE_RESUMED: "Resumed.",
         ASSISTANCE_STOPPED: "Assistance stopped.",
         CAMERA_UNAVAILABLE: "Camera unavailable.",
-        VISION_UNAVAILABLE: "Vision system unavailable."
+        VISION_UNAVAILABLE: "Vision system unavailable. Please stop.",
+        RECOVERING: "Reconnecting vision.",
+        DEGRADED: "Reduced accuracy."
     },
 
-    // Synthesis Voice Defaults
-    defaults: {
-        rate: 1.05,                 // Slightly brisk, clear delivery
-        pitch: 1.0,                 // Neutral calm pitch
+    /** Speech synthesis defaults. Brisk but not rushed. */
+    voice: {
+        rate: 1.12,
+        pitch: 1.0,
         volume: 1.0,
         preferredLanguage: "en-US"
-    }
+    },
+
+    /**
+     * Maximum utterances per minute, as a hard backstop independent of all the
+     * per-message logic. If this ever engages something upstream is wrong, and
+     * it is logged rather than silently applied.
+     */
+    maxUtterancesPerMinute: 18
 };
+
+export default SpeechConfig;

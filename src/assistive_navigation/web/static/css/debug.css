@@ -1,63 +1,165 @@
-/**
- * Developer Debug Panel Stylesheet
+/*
+ * Developer diagnostics styling.
+ *
+ * Dense, monospaced, and deliberately plain. This is an instrument panel: it
+ * should be readable at a glance during a walk test and cost nothing to render.
  */
 
-.debug-drawer {
-    background-color: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: 16px;
-    padding: 16px;
-    margin-top: 12px;
+.diag-group {
+    margin: 12px 0 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--accent);
 }
 
-.debug-header {
+.diag-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+}
+
+.diag-cell {
     display: flex;
+    align-items: baseline;
     justify-content: space-between;
-    align-items: center;
+    gap: 10px;
+    padding: 5px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.diag-label {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.diag-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.76rem;
+    font-weight: 600;
+    text-align: right;
+    /* Long values (model names, WASM config) wrap rather than overflow. */
+    overflow-wrap: anywhere;
+}
+
+@media (min-width: 520px) {
+    .diag-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* ------------------------------------------------------------- benchmark */
+
+.bench-intro {
+    margin: 0 0 10px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.bench-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
     margin-bottom: 12px;
 }
 
-.debug-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--color-cyan);
-}
-
-.debug-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+.bench-option {
+    display: flex;
+    align-items: center;
     gap: 10px;
-    margin-bottom: 14px;
-}
-
-.debug-metric-box {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-subtle);
+    min-height: 44px;
+    padding: 6px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 8px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
 }
 
-.debug-metric-label {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
+.bench-option input {
+    width: 22px;
+    height: 22px;
+    accent-color: var(--accent);
 }
 
-.debug-metric-val {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-primary);
+.bench-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
 }
 
-/* Scenario Runner Box */
-.scenario-runner-box {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-subtle);
-    border-radius: 10px;
+.bench-controls > * {
+    flex: 1;
+}
+
+/* The live instruction for the current benchmark phase. Prominent, because the
+   operator has to read it while holding the phone up and walking. */
+.bench-prompt {
     padding: 12px;
+    margin-bottom: 12px;
+    background: rgba(53, 200, 255, 0.1);
+    border: 1px solid rgba(53, 200, 255, 0.45);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--accent);
 }
 
-.scenario-control-bar {
+.bench-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.68rem;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.bench-table th,
+.bench-table td {
+    padding: 5px 7px;
+    border-bottom: 1px solid var(--border);
+    text-align: right;
+}
+
+.bench-table th:first-child,
+.bench-table td:first-child {
+    text-align: left;
+}
+
+.bench-table th {
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.bench-verdict.excellent { color: var(--ok); }
+.bench-verdict.good { color: var(--accent); }
+.bench-verdict.marginal { color: var(--warn); }
+.bench-verdict.poor,
+.bench-verdict.failed { color: var(--danger); }
+
+.bench-detail {
+    margin: 12px 0 0;
+    max-height: 220px;
+    overflow: auto;
+    padding: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.66rem;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+}
+
+/* -------------------------------------------------------------- scenarios */
+
+.scenario-bar {
     display: flex;
     gap: 8px;
     margin-bottom: 10px;
@@ -65,31 +167,148 @@
 
 .scenario-select {
     flex: 1;
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 0.9rem;
+    min-height: 42px;
+    padding: 0 8px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.85rem;
 }
 
 .scenario-log {
-    background-color: #050811;
-    border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 8px;
-    font-family: monospace;
-    font-size: 0.78rem;
-    max-height: 120px;
+    max-height: 260px;
     overflow-y: auto;
-    color: #a5f3fc;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.7rem;
+    line-height: 1.55;
 }
 
 .log-entry {
-    margin-bottom: 4px;
+    padding: 1px 0;
+    overflow-wrap: anywhere;
+}
+
+.log-title {
+    font-weight: 700;
+    color: var(--accent);
+    padding-top: 6px;
+}
+
+.log-note {
+    color: var(--text-muted);
 }
 
 .log-success {
-    color: #4ade80;
+    color: var(--ok);
+}
+
+.log-fail {
+    color: var(--danger);
+}
+
+.log-detail {
+    color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------ demo course */
+
+.course-intro {
+    margin: 0 0 10px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.course-list {
+    margin: 0;
+    padding-left: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.course-station {
+    padding: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: 8px;
+}
+
+.course-station.marked-pass {
+    border-left-color: var(--ok);
+}
+
+.course-station.marked-fail {
+    border-left-color: var(--danger);
+}
+
+.course-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.course-header strong {
+    flex: 1;
+    min-width: 55%;
+    font-size: 0.88rem;
+}
+
+.btn-chip {
+    min-height: 36px;
+    min-width: 60px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-raised);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.78rem;
     font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-chip.pass:hover,
+.btn-chip.pass:focus-visible {
+    border-color: var(--ok);
+    color: var(--ok);
+}
+
+.btn-chip.fail:hover,
+.btn-chip.fail:focus-visible {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.course-expected {
+    margin: 6px 0;
+    font-size: 0.8rem;
+    color: var(--text);
+}
+
+.course-checks {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+
+.course-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.course-summary {
+    flex: 1;
+    font-size: 0.82rem;
+    color: var(--text-muted);
 }

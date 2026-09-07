@@ -2,144 +2,149 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Vision Navigation Assistant</title>
-    
-    <!-- Accessibility Meta -->
-    <meta name="description" content="Real-time spatial vision guidance assistant for blind and visually impaired users.">
-    <meta name="theme-color" content="#0a0e17">
+    <!-- viewport-fit=cover so the layout reaches under a phone notch; user
+         scaling is left enabled because disabling it breaks zoom for low-vision
+         users, which matters more than layout tidiness. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Vision Navigation Assistant</title>
 
-    <!-- Stylesheets -->
+    <meta name="description" content="Real-time on-device walking guidance prototype for blind and low-vision users. All processing happens locally; no video leaves the device.">
+    <meta name="theme-color" content="#080c14">
+    <meta name="color-scheme" content="dark">
+
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/debug.css">
-
-    <!-- Edge AI Perception Engines (TensorFlow.js & MediaPipe Multi-Engine Support) -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
 </head>
 <body>
 
-    <!-- Screen Reader ARIA Live Region (Polite & Assertive Announcements) -->
-    <div id="aria-live-announcer" class="visually-hidden" aria-live="assertive" aria-atomic="true"></div>
+    <a class="skip-link" href="#controls-region">Skip to controls</a>
 
-    <!-- Application Header -->
-    <header class="app-header" role="banner">
-        <div class="app-title-box">
-            <span style="font-size:1.5rem;" aria-hidden="true">🦯</span>
-            <h1 class="app-title">Vision Assistant</h1>
-        </div>
-        <div id="main-status-pill" class="status-pill ready" role="status" aria-label="System status">
-            Ready
-        </div>
+    <!--
+      Two live regions, deliberately separate.
+      Guidance is assertive so it interrupts a screen reader the way emergency
+      speech interrupts synthesis. Status is polite so lifecycle chatter never
+      talks over guidance.
+    -->
+    <div id="aria-guidance-announcer" class="visually-hidden" role="alert" aria-live="assertive" aria-atomic="true"></div>
+    <div id="aria-status-announcer" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <header class="app-header">
+        <h1 class="app-title">Vision Assistant</h1>
+        <p id="main-status-pill" class="status-pill neutral" role="status">Idle</p>
     </header>
 
-    <!-- Main Mobile Layout -->
-    <main class="main-container" role="main">
+    <main class="main-container">
 
-        <!-- Safety Disclaimer -->
-        <div class="safety-disclaimer-box" role="note">
-            <span aria-hidden="true">⚠️</span>
-            <span><strong>Assistive Research Prototype:</strong> Does not replace a white cane or guide dog. Use cautious judgment.</span>
+        <p class="safety-disclaimer" role="note">
+            <strong>Research prototype.</strong> This is an assistive aid with real limitations.
+            It does not replace a white cane, a guide dog, or your own judgement.
+            It will miss things.
+        </p>
+
+        <!-- Startup gate progress. Hidden once the vision system is ready. -->
+        <div class="startup-progress-row" id="startup-progress-row">
+            <progress id="startup-progress" class="startup-progress" max="100" aria-labelledby="startup-progress-label"></progress>
+            <p id="startup-progress-label" class="startup-progress-label">Starting…</p>
         </div>
 
-        <!-- Real-Time Direction Action Card (Audio-First Visual Companion) -->
-        <section class="action-card" id="main-action-card" aria-labelledby="main-action-headline" aria-describedby="main-reason-subline">
-            <div class="action-headline" id="main-action-headline">READY</div>
-            <div class="action-subline" id="main-reason-subline">Press Start Assistance to begin navigation</div>
+        <!-- Primary output. Large, high contrast, text-first. -->
+        <section class="action-card" id="main-action-card" aria-labelledby="main-action-headline">
+            <p class="action-headline" id="main-action-headline">READY</p>
+            <p class="action-subline" id="main-reason-subline">Press Start to begin guidance</p>
         </section>
 
-        <!-- Camera Viewport & Debug Overlay -->
-        <section class="camera-viewport-wrapper" aria-label="Live Camera Stream">
+        <section class="camera-viewport" aria-label="Camera preview">
+            <!-- aria-hidden: the preview carries no information a screen-reader
+                 user can act on. The guidance live region carries it instead. -->
             <video id="camera-video-feed" class="camera-video" playsinline muted autoplay aria-hidden="true"></video>
-            <canvas id="debug-canvas-overlay" class="debug-canvas" aria-hidden="true"></canvas>
+            <canvas id="debug-canvas-overlay" class="debug-canvas" style="display:none" aria-hidden="true"></canvas>
         </section>
 
-        <!-- Primary Accessible Touch Controls (>=48px touch target) -->
-        <section class="controls-container" aria-label="Assistance Controls">
-            <button id="btn-start-assist" class="btn-large btn-primary" aria-label="Start Vision Assistance (Press Space)">
-                <span aria-hidden="true">▶️</span> START ASSISTANCE
-            </button>
-
-            <button id="btn-pause-assist" class="btn-large btn-secondary" style="display:none;" data-paused="false" aria-label="Pause or Resume Assistance (Press P)">
-                <span aria-hidden="true">⏸️</span> PAUSE
-            </button>
-
-            <button id="btn-stop-assist" class="btn-large btn-danger" style="display:none;" aria-label="Stop Vision Assistance (Press Space)">
-                <span aria-hidden="true">⏹️</span> STOP
-            </button>
-
-            <div class="secondary-actions-bar">
-                <button id="btn-describe-scene" class="btn-large btn-primary" aria-label="Describe current scene (or double-tap screen)">
-                    🎙️ Describe Scene
-                </button>
-                <button id="btn-toggle-narrate" class="btn-large btn-secondary" data-narrate="false" aria-label="Toggle Live Scene Commentary">
-                    🗣️ Narration: OFF
-                </button>
+        <section class="controls" id="controls-region" aria-label="Assistance controls">
+            <div class="controls-primary">
+                <button id="btn-start-assist" class="btn-large btn-primary" type="button">Start</button>
+                <button id="btn-pause-assist" class="btn-large btn-secondary" type="button" hidden aria-pressed="false" aria-label="Pause assistance">Pause</button>
+                <button id="btn-stop-assist" class="btn-large btn-danger" type="button" hidden>Stop</button>
+                <button id="btn-retry-vision" class="btn-large btn-warning" type="button" hidden>Retry vision system</button>
             </div>
 
-            <div class="secondary-actions-bar">
-                <button id="btn-mute-audio" class="btn-large btn-secondary" aria-label="Toggle Mute Audio (Press M)">
-                    🔊 Mute
-                </button>
-                <button id="btn-toggle-debug" class="btn-large btn-secondary" aria-label="Toggle Developer Debug Mode (Press D)">
-                    🛠️ Debug
-                </button>
+            <div class="controls-secondary">
+                <button id="btn-mute-audio" class="btn-large btn-secondary" type="button" aria-pressed="false" aria-label="Mute spoken guidance">Mute</button>
+                <button id="btn-describe-scene" class="btn-large btn-secondary" type="button" aria-label="Describe the current scene">Describe scene</button>
+            </div>
+
+            <div class="controls-secondary">
+                <label class="mode-field" for="select-quality-mode">
+                    <span>Mode</span>
+                    <select id="select-quality-mode" class="mode-select">
+                        <option value="FAST">Fast</option>
+                        <option value="BALANCED" selected>Balanced</option>
+                        <option value="ACCURACY">Accuracy</option>
+                    </select>
+                </label>
             </div>
         </section>
 
-        <!-- Developer / Diagnostic Debug Drawer (Hidden by default) -->
-        <aside class="debug-drawer" id="debug-drawer-panel" style="display:none;" aria-label="Developer Diagnostics Panel">
-            <div class="debug-header">
-                <h2 class="debug-title">Edge AI Telemetry & Corridor HUD</h2>
+        <!-- Developer tooling. Collapsed by default; never in the way of the
+             four critical controls above. -->
+        <details class="dev-tools">
+            <summary>Developer tools</summary>
+
+            <div class="controls-secondary">
+                <button id="btn-toggle-debug" class="btn-large btn-secondary" type="button" aria-pressed="false">Overlay</button>
+                <button id="btn-toggle-diagnostics" class="btn-large btn-secondary" type="button" aria-pressed="false">Diagnostics</button>
+            </div>
+            <div class="controls-secondary">
+                <button id="btn-toggle-benchmark" class="btn-large btn-secondary" type="button" aria-pressed="false">Benchmark</button>
+                <button id="btn-toggle-demo" class="btn-large btn-secondary" type="button" aria-pressed="false">Demo mode</button>
             </div>
 
-            <div class="debug-grid">
-                <div class="debug-metric-box">
-                    <div class="debug-metric-label">Inference FPS</div>
-                    <div class="debug-metric-val" id="debug-fps">-- FPS</div>
-                </div>
-                <div class="debug-metric-box">
-                    <div class="debug-metric-label">Latency</div>
-                    <div class="debug-metric-val" id="debug-latency">-- ms</div>
-                </div>
-                <div class="debug-metric-box">
-                    <div class="debug-metric-label">Backend</div>
-                    <div class="debug-metric-val" id="debug-backend">--</div>
-                </div>
-                <div class="debug-metric-box">
-                    <div class="debug-metric-label">Left Clear</div>
-                    <div class="debug-metric-val" id="debug-left-clearance">100%</div>
-                </div>
-                <div class="debug-metric-box">
-                    <div class="debug-metric-label">Right Clear</div>
-                    <div class="debug-metric-val" id="debug-right-clearance">100%</div>
-                </div>
-                <div class="debug-metric-box">
-                    <div class="debug-metric-label">Action State</div>
-                    <div class="debug-metric-val" id="debug-action">CONTINUE</div>
-                </div>
-            </div>
+            <section id="diagnostics-panel" class="panel" style="display:none"></section>
 
-            <!-- Synthetic Scenario Simulation Studio -->
-            <div class="scenario-runner-box">
-                <div style="font-size:0.85rem; font-weight:700; margin-bottom:8px; color:var(--text-secondary);">
-                    Synthetic Scenario Benchmark Studio (16 Test Cases)
-                </div>
-                <div class="scenario-control-bar">
-                    <select id="select-test-scenario" class="scenario-select" aria-label="Select Test Scenario"></select>
-                    <button id="btn-run-scenario" class="btn-large btn-primary" style="min-height:38px; padding:6px 14px; font-size:0.85rem;">
-                        Run
-                    </button>
-                </div>
-                <div class="scenario-log" id="scenario-output-log">
-                    <div class="log-entry">Select a test scenario and click Run to simulate frame perception.</div>
-                </div>
-            </div>
-        </aside>
+            <section id="benchmark-panel" class="panel" style="display:none"></section>
 
+            <section class="panel">
+                <h3 class="panel-title">Scenario replay</h3>
+                <p class="panel-note">
+                    Replays scripted situations through the real navigation stack with no camera involved.
+                    The same scenarios run in the automated test suite.
+                </p>
+                <div class="scenario-bar">
+                    <label class="visually-hidden" for="select-test-scenario">Scenario</label>
+                    <select id="select-test-scenario" class="scenario-select"></select>
+                    <button id="btn-run-scenario" class="btn-small btn-primary" type="button">Run</button>
+                    <button id="btn-run-all-scenarios" class="btn-small btn-secondary" type="button">Run all</button>
+                </div>
+                <div class="scenario-log" id="scenario-output-log" role="log" aria-live="off">
+                    <div class="log-entry log-note">Pick a scenario and run it.</div>
+                </div>
+            </section>
+
+            <section id="demo-course-panel" class="panel" style="display:none"></section>
+
+            <section class="panel">
+                <h3 class="panel-title">Keyboard</h3>
+                <ul class="key-list">
+                    <li><kbd>Space</kbd> start or stop</li>
+                    <li><kbd>P</kbd> pause or resume</li>
+                    <li><kbd>M</kbd> mute</li>
+                    <li><kbd>D</kbd> overlay</li>
+                    <li><kbd>I</kbd> diagnostics</li>
+                    <li><kbd>B</kbd> benchmark</li>
+                </ul>
+            </section>
+
+            <section class="panel">
+                <h3 class="panel-title">Privacy</h3>
+                <p class="panel-note">
+                    Camera frames are processed on this device and are never recorded, stored or uploaded.
+                    Model files are cached locally so they do not need re-downloading.
+                    Guidance requires no network connection once the model is cached.
+                </p>
+            </section>
+        </details>
     </main>
 
-    <!-- App Module Script -->
     <script type="module" src="./js/app.js"></script>
 </body>
 </html>

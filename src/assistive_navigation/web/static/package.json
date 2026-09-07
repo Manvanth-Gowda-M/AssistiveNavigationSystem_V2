@@ -1,0 +1,7 @@
+{
+  "name": "vision-navigation-client",
+  "private": true,
+  "type": "module",
+  "description": "Marks the static client as ES modules so Node's test runner can import the same files the browser loads. There is no build step and no dependencies; this file exists purely so `node --test` resolves these sources as modules.",
+  "sideEffects": false
+}

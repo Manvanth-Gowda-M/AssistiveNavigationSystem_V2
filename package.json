@@ -1,0 +1,16 @@
+{
+  "name": "assistive-navigation-client-tests",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Test entry points for the browser navigation client. There is no build step and no runtime dependencies; the client is served as plain ES modules. This file only exists so `npm test` finds the Node test runner invocation.",
+  "scripts": {
+    "test": "node --test \"tests/js/*.test.mjs\"",
+    "test:watch": "node --test --watch \"tests/js/*.test.mjs\"",
+    "test:coverage": "node --test --experimental-test-coverage \"tests/js/*.test.mjs\"",
+    "fixtures": "python tools/make_decode_fixtures.py",
+    "models": "python scripts/export_web_models.py"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
